@@ -2,6 +2,9 @@ import vk_api
 import requests
 import os
 from typing import List, Dict, Union, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class VKGroupParser:
@@ -118,7 +121,8 @@ def getLastPostId():
 
 
 # access_token: str = ''
-access_token: str = ''
+access_token: str = str(os.getenv("VK_ACCESS_TOKEN"))
+# print(access_token)
 group_url: str = 'https://vk.com/roflwolf'
 last_post_id: int = getLastPostId()  # Получение последнего id поста для этой группы из базы данных
 group_id = "201880129"
