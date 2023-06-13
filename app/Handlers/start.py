@@ -12,7 +12,8 @@ async def send_welcome(message: object) -> object:
     )
 
 
-# @bot.message_handler(func=lambda message: True)
-# async def echo_message(message):
-#     await bot.reply_to(message, message.text)
+@bot.message_handler(func=lambda message: True)
+async def HandlerTextMiddleware(message):
+    if message.text == 'reply':
+        await bot.reply_to(message, message.text)
 
