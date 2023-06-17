@@ -1,0 +1,10 @@
+import telebot
+import logging
+
+logging.getLogger(__name__)
+
+
+class ExceptionHandler(telebot.ExceptionHandler):
+    def handle(self, exception):
+        telebot.logger.error(exception)
+        logging.error(telebot.logger.error(exception))

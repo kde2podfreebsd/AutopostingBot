@@ -3,6 +3,7 @@ import requests
 import os
 from typing import List, Dict, Union, Optional
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -40,56 +41,62 @@ class VKGroupParser:
                     print("\n\n\n","POST STRUCT:",post, end="\n\n\n")
 
                     if 'attachments' in post:
+                        # print(post)
+                        # self.vk.video.get(videos=)
+
                         for attachment in post['attachments']:
                             attachment_type: str = attachment['type']
 
                             try:
-                                if attachment_type == 'photo':
-                                    # print(attachment)
-                                    photo_url: str = attachment['photo']['sizes'][-1]['url']
-                                    photo_id: int = attachment['photo']['id']
-                                    filename: str = f'media/photo_{photo_id}.jpg'
-                                    response = requests.get(photo_url)
+                                # if attachment_type == 'photo':
+                                #     # print(attachment)
+                                #     photo_url: str = attachment['photo']['sizes'][-1]['url']
+                                #     photo_id: int = attachment['photo']['id']
+                                #     filename: str = f'media/photo_{photo_id}.jpg'
+                                #     response = requests.get(photo_url)
+                                #
+                                #     if response.status_code == 200:
+                                #         with open(filename, 'wb') as file:
+                                #             file.write(response.content)
+                                #         media_files.append(filename)
 
+                                if attachment_type == 'video':
+                                    print(attachment['video']['id'])
+                                    video_attachment = post['attachments'][0]['video']  # Получаем информацию о видео
+                                    video_url = video_attachment['photo_1280']  # Выбираем разрешение 1280
+
+                                    print(f'URL видео: {video_url}')
+                                    response = requests.get(video_url, stream=True)
                                     if response.status_code == 200:
-                                        with open(filename, 'wb') as file:
-                                            file.write(response.content)
-                                        media_files.append(filename)
+                                        # Определение имени файла на основе URL
+                                        file_name = f'media/{attachment["video"]["id"]}.mp4'
 
-                                elif attachment_type == 'video':
-                                    video_id: int = attachment['video']['id']
-                                    track_code: object = attachment['video']['track_code']
-                                    filename: str = f'media/video_{video_id}.mp4'
-                                    self.vk_upload.video(video_file=track_code)
-                                    # print(attachment)
-                                    # video_files: Dict[str, Union[str, int]] = attachment['video']['files']
-                                    # print(video_files)
-                                    # max_quality: int = 0
-                                    # max_quality_url: str = ''
-                                    # for key, value in video_files.items():
-                                    #     if 'mp4_' in key and 'url' in value:
-                                    #         quality = int(key.split('_')[1])
-                                    #         if quality > max_quality:
-                                    #             max_quality = quality
-                                    #             max_quality_url = value['url']
+
+                                        # # Сохранение видео на диск
+                                        with open(file_name, 'wb') as file:
+                                            for chunk in response.iter_content(1024):
+                                                file.write(chunk)
+
+                                        print(f'Видео сохранено в файл: {file_name}')
+                                    else:
+                                        print('Ошибка при загрузке видео.')
+
+                                    # video_file = self.vk_upload.video(video_url)
+                                    # video_file_path = f"media/{attachment['video']['id']}.mp4"
+                                    # video_file.save(video_file_path)
                                     #
-                                    # response = requests.get(max_quality_url)
-                                    #
-                                    # if response.status_code == 200:
-                                    #     with open(filename, 'wb') as file:
-                                    #         file.write(response.content)
-                                    #     media_files.append(filename)
+                                    # print(f'Видео сохранено в файл: {video_file_path}')
 
-                                elif attachment_type == 'doc' and attachment['doc']['type'] == 3:
-                                    gif_id: int = attachment['doc']['id']
-                                    filename: str = f'media/gif_{gif_id}.gif'
-                                    gif_url: str = attachment['doc']['url']
-                                    response = requests.get(gif_url)
-
-                                    if response.status_code == 200:
-                                        with open(filename, 'wb') as file:
-                                            file.write(response.content)
-                                        media_files.append(filename)
+                                # elif attachment_type == 'doc' and attachment['doc']['type'] == 3:
+                                #     gif_id: int = attachment['doc']['id']
+                                #     filename: str = f'media/gif_{gif_id}.gif'
+                                #     gif_url: str = attachment['doc']['url']
+                                #     response = requests.get(gif_url)
+                                #
+                                #     if response.status_code == 200:
+                                #         with open(filename, 'wb') as file:
+                                #             file.write(response.content)
+                                #         media_files.append(filename)
 
                             except Exception as e:
                                 print(f'Ошибка при обработке вложения: {attachment_type}')
