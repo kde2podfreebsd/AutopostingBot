@@ -1,4 +1,4 @@
-from app.Config import bot
+from Bot.Config import bot
 from telebot.asyncio_handler_backends import BaseMiddleware
 from telebot.asyncio_handler_backends import CancelUpdate
 
@@ -19,5 +19,6 @@ class FloodingMiddleware(BaseMiddleware):
             return CancelUpdate()
         self.last_time[message.from_user.id] = message.date
 
-    # async def post_process(self, message, data, exception):
-    #     await bot.send_message(message.chat.id, 'text')
+    async def post_process(self, message, data, exception):
+        pass
+        # await bot.send_message(message.chat.id, 'text')

@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from telebot.async_telebot import AsyncTeleBot
-from app.Middlewares.exceptionHandler import ExceptionHandler
+from Bot.Middlewares.exceptionHandler import ExceptionHandler
 
 load_dotenv()
 
