@@ -7,11 +7,10 @@ async def _mainMenu(chat_id: int | str):
         chat_id,
         MarkupBuilder.welcome_text,
         reply_markup=MarkupBuilder.main_menu(),
-        parse_mode="MarkdownV2"
+        parse_mode="MarkdownV2",
     )
 
 
-@bot.message_handler(commands=['help', 'start'])
+@bot.message_handler(commands=["help", "start"])
 async def send_welcome(message) -> object:
     await _mainMenu(chat_id=message.chat.id)
-

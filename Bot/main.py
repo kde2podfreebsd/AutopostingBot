@@ -1,20 +1,22 @@
-import os
-import logging
 import asyncio
+import logging
+import os
+
 import telebot
-from telebot.asyncio_filters import IsReplyFilter
+# from Config import basedir
 from telebot.asyncio_filters import ForwardFilter
+from telebot.asyncio_filters import IsReplyFilter
 
-from Bot.Config import bot, inline_menu_manager
-from Config import basedir
-
-from Bot.Handlers.mainMenu import send_welcome, _mainMenu
-from Bot.Handlers.helpHandler import _helpMenu, _contact, _faq
-
-from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
-
-from Bot.Filters.replyFilter import reply_filter
+from Bot.Config import bot
+from Bot.Config import inline_menu_manager
 from Bot.Filters.forwardFilter import forward_filter
+from Bot.Filters.replyFilter import reply_filter
+from Bot.Handlers.helpHandler import _contact
+from Bot.Handlers.helpHandler import _faq
+from Bot.Handlers.helpHandler import _helpMenu
+from Bot.Handlers.mainMenu import _mainMenu
+from Bot.Handlers.mainMenu import send_welcome
+from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
 
 
 class Bot:
@@ -35,7 +37,7 @@ class Bot:
     async def HandlerTextMiddleware(message):
 
         match message.text:
-            case '📖 Помощь':
+            case "📖 Помощь":
                 await _helpMenu(chat_id=message.chat.id)
 
     @staticmethod
@@ -50,19 +52,17 @@ class Bot:
             await _faq(call)
 
         if call.data == "back_to_main_menu":
-            print(inline_menu_manager.help_menu_msgId_to_delete)
-            await inline_menu_manager.delete_msgId_from_help_menu_dict(chat_id=call.message.chat.id)
+            print(inline_menu_manager.__help_menu_msgId_to_delete)
+            await inline_menu_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
             await _mainMenu(chat_id=call.message.chat.id)
 
     @staticmethod
     async def polling():
         while True:
             try:
-                await bot.polling(
-                    non_stop=True,
-                    interval=0,
-                    timeout=20
-                )
+                await bot.polling(non_stop=True, interval=0, timeout=20)
 
             except Exception:
                 await asyncio.sleep(2)

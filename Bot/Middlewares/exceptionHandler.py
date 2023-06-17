@@ -1,5 +1,6 @@
-import telebot
 import logging
+
+import telebot
 
 logging.getLogger(__name__)
 
