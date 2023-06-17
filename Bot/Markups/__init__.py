@@ -1,1 +1,1 @@
-from .markupBuilder import MarkupBuilder
+from .markupBuilder import MarkupBuilder  # noqa

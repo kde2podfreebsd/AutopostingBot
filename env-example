@@ -1,0 +1,16 @@
+#Telegram
+MAIN_BOT_TOKEN=""
+
+#VK
+VK_ACCESS_TOKEN=""
+
+#Database
+POSTGRES_USER="root"
+POSTGRES_PASSWORD="root"
+POSTGRES_HOST="172.20.0.3"
+POSTGRES_PORT="5432"
+POSTGRES_DB="db"
+
+#UKassa Payments
+SHOP_ID=""
+YOOTOKEN=""
