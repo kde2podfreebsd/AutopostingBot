@@ -1,4 +1,4 @@
-from app.Config import bot
+from Bot.Config import bot
 
 
 @bot.message_handler(is_forwarded=True)
