@@ -9,7 +9,7 @@ from .bot import bot  # noqa
 basedir = f"{os.path.abspath(os.path.dirname(__file__))}/../"
 load_dotenv()
 logger = telebot.logger
-telebot.logger.setLevel(logging.DEBUG)  # Outputs debug messages to console.
+telebot.logger.setLevel(logging.DEBUG)
 
 logging.basicConfig(
     filename=f"{basedir}/Logs/logs.log",

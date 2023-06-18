@@ -24,10 +24,10 @@ async def _helpMenu(chat_id: int | str):
     await inline_menu_manager.add_msgId_to_help_menu_dict(
         chat_id=chat_id, msgId=msg.message_id
     )
-    print(inline_menu_manager.__help_menu_msgId_to_delete)
+    print(inline_menu_manager.help_menu_msgId_to_delete)
 
 
-async def _contact(call: types.CallbackQuery):
+async def _contact(call: types.CallbackQuery) -> object:
     await inline_menu_manager.delete_msgId_from_help_menu_dict(
         chat_id=call.message.chat.id
     )
