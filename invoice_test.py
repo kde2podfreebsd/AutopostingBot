@@ -1,9 +1,14 @@
+import os
+
 import telebot
+from dotenv import load_dotenv
 from telebot.types import LabeledPrice
 from telebot.types import ShippingOption
 
-token = "6143625010:AAGbZBw7fPwjICN-iCzcvBGypN7p-AcfYhQ"
-provider_token = "381764678:TEST:59638"  # @BotFather -> Bot Settings -> Payments
+load_dotenv()
+
+token = os.getenv("MAIN_BOT_TOKEN")
+provider_token = os.getenv("PROVIDER_YOOKASSA_TEST")
 bot = telebot.TeleBot(token)
 
 # More about Payments: https://core.telegram.org/bots/payments

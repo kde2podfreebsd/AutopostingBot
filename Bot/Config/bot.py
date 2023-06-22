@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_storage import StateMemoryStorage
 
-from Bot.Middlewares.exceptionHandler import ExceptionHandler
+from Bot.Middlewares.exceptionMiddleware import ExceptionHandler
 
 load_dotenv()
 

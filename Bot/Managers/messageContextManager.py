@@ -1,7 +1,7 @@
 from Bot.Config import bot
 
 
-class InlineContextManager:
+class MessageContextManager:
     _instance = None
 
     def __new__(cls, *args, **kwargs):

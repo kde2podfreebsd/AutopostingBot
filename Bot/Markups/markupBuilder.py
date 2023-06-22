@@ -128,18 +128,64 @@ class MarkupBuilder:
 
     @classmethod
     def new_chain_menu(cls):
-        menu: ReplyKeyboardMarkup = types.ReplyKeyboardMarkup(
+        return types.InlineKeyboardMarkup(
             row_width=1,
-            resize_keyboard=True,
-            one_time_keyboard=True,
-        ).add(
-            types.KeyboardButton("📡 Телеграм канал"),
-            types.KeyboardButton("🌐 ВК-паблик"),
-            types.KeyboardButton("📸 Instagram страница"),
-            types.KeyboardButton("➡️Продолжить"),
-            types.KeyboardButton("🔙Назад"),
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="📡 Телеграм канал", callback_data="new_chain#tg"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🌐 ВК-паблик", callback_data="new_chain#vk"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="📸 Instagram страница", callback_data="new_chain#inst"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_main_menu"
+                    )
+                ],
+            ],
         )
-        return menu
+
+    @classmethod
+    def current_chain_menu(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="📡 Телеграм канал", callback_data="new_chain#tg"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🌐 ВК-паблик", callback_data="new_chain#vk"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="📸 Instagram страница", callback_data="new_chain#inst"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="➡️Продолжить", callback_data="new_chain#continue"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_new_chain_menu"
+                    )
+                ],
+            ],
+        )
 
     @classmethod
     @property
@@ -186,3 +232,13 @@ class MarkupBuilder:
                 ]
             ],
         )
+
+    @classmethod
+    @property
+    def error_in_add_url_toChain(cls):
+        cls._create_new_telegram_chain_text: object = formatting.format_text(
+            "⚠️ Извините, но ссылка, которую вы предоставили, не корректна или недоступна\\. Пожалуйста, убедитесь, что вы правильно скопировали и вставили ссылку, и что источник доступен для просмотра, затем попробуйте снова\\.",
+            # noqa
+            separator="",
+        )
+        return cls._create_new_telegram_chain_text
