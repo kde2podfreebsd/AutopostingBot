@@ -90,6 +90,9 @@ class Bot:
             await instagram_source_channel_msg(call.message)
             await bot.set_state(call.message.chat.id, NewChainStates.instagram)
 
+        if call.data == "new_chain#continue":
+            await bot.send_message(call.message.chat.id, "Укажите телеграм канал канал для постинга")
+
     @staticmethod
     async def polling():
         while True:

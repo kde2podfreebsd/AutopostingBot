@@ -14,16 +14,16 @@ bot = telebot.TeleBot(token)
 # More about Payments: https://core.telegram.org/bots/payments
 
 prices = [
-    LabeledPrice(label="Working Time Machine", amount=5750),
-    LabeledPrice("Gift wrapping", 500),
+    LabeledPrice(label="Подписка на месяц", amount=300),
+    LabeledPrice("Подписка на 3 месяца", 800 * 100),
 ]
 
 shipping_options = [
-    ShippingOption(id="instant", title="WorldWide Teleporter").add_price(
-        LabeledPrice("Teleporter", 1000)
+    ShippingOption(id="instant", title="Подписка на месяц").add_price(
+        LabeledPrice("Teleporter", 300 * 100)
     ),
-    ShippingOption(id="pickup", title="Local pickup").add_price(
-        LabeledPrice("Pickup", 300)
+    ShippingOption(id="pickup", title="Подписка на 3 месяца").add_price(
+        LabeledPrice("Pickup", 800 * 100)
     ),
 ]
 
@@ -32,8 +32,6 @@ shipping_options = [
 def command_start(message):
     bot.send_message(
         message.chat.id,
-        "Hello, I'm the demo merchant bot."
-        " I can sell you a Time Machine."
         " Use /buy to order one, /terms for Terms and Conditions",
     )
 
@@ -42,11 +40,7 @@ def command_start(message):
 def command_terms(message):
     bot.send_message(
         message.chat.id,
-        "Thank you for shopping with our demo bot. We hope you like your new time machine!\n"
-        "1. If your time machine was not delivered on time, please rethink your concept of time and try again.\n"
-        "2. If you find that your time machine is not working, kindly contact our future service workshops on Trappist-1e."
-        " They will be accessible anywhere between May 2075 and November 4000 C.E.\n"
-        "3. If you would like a refund, kindly apply for one yesterday and we will have sent it to you immediately.",
+        "Thank you for shopping with our Autoposting bot!\n"
     )
 
 
@@ -55,20 +49,20 @@ def command_pay(message):
     bot.send_message(
         message.chat.id,
         "Real cards won't work with me, no money will be debited from your account."
-        " Use this test card number to pay for your Time Machine: `4242 4242 4242 4242`"
+        " Use this test card number to pay for sub: `4242 4242 4242 4242`"
         "\n\nThis is your demo invoice:",
         parse_mode="Markdown",
     )
     bot.send_invoice(
         message.chat.id,  # chat_id
-        "Working Time Machine",  # title
-        " Want to visit your great-great-great-grandparents? Make a fortune at the races? Shake hands with Hammurabi and take a stroll in the Hanging Gardens? Order our Working Time Machine today!",  # description
-        "HAPPY FRIDAYS COUPON",  # invoice_payload
+        "Подписка на месяц",  # title
+        "Подписка на месяц на связку",  # description
+        "ПОдписка на месяц",  # invoice_payload
         provider_token,  # provider_token
         "RUB",  # currency
         prices,  # prices
         photo_url="http://erkelzaar.tsudao.com/models/perrotta/TIME_MACHINE.jpg",
-        photo_height=512,  # !=0/None or picture won't be shown
+        photo_height=None,  # !=0/None or picture won't be shown
         photo_width=512,
         photo_size=512,
         is_flexible=False,  # True If you need to set up Shipping Fee
@@ -102,7 +96,7 @@ def got_payment(message):
     bot.send_message(
         message.chat.id,
         "Hoooooray! Thanks for payment! We will proceed your order for `{} {}` as fast as possible! "
-        "Stay in touch.\n\nUse /buy again to get a Time Machine for your friend!".format(
+        "Stay in touch.\n\nUse /buy again to get sub".format(
             message.successful_payment.total_amount / 100,
             message.successful_payment.currency,
         ),

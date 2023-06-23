@@ -102,9 +102,9 @@ async def get_telegram_source_channel(message):
         await bot.send_message(message.chat.id, "Telegram")
         async with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data["tg"] = message.text
-        new_chain_manager.add_source_url(
-            chat_id=message.chat.id, source_url=data["tg"], source_type="telegram"
-        )
+        # new_chain_manager.add_source_url(
+        #     chat_id=message.chat.id, source_url=data["tg"], source_type="telegram"
+        # )
         await bot.delete_state(message.from_user.id)
         await _addSourceToCurrentChain(message)
 

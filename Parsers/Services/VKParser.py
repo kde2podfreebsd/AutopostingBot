@@ -1,9 +1,6 @@
 import datetime
 import os
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union  # noqa
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 import vk_api
@@ -18,25 +15,35 @@ load_dotenv()
 class VKGroupParser(ParserInterface):
     def __init__(self):
         self.vk_session = vk_api.VkApi(token=os.getenv("VK_ACCESS_TOKEN"))
-        self.vk = self.vk_session.get_api()
-        self.vk_upload = vk_api.VkUpload(vk=self.vk)
-        self.media = f"{os.path.abspath(os.path.dirname(__file__))}/../media/"
+        self.vk: vk_api.VkApiMethod = self.vk_session.get_api()
+        self.vk_upload: vk_api.VkUpload = vk_api.VkUpload(vk=self.vk)
+        self.media: str = f"{os.path.abspath(os.path.dirname(__file__))}/../../media/"
 
     async def parse_posts(
         self,
-        target: int | str,
-        last_postId: Optional[int] = None,
+        target: Union[int, str],
+        until_postId: Optional[int] = None,
         until_date: Optional[int] = None,
-    ) -> None:
-        try:
-            offset = 0
-            dataset = []
+    ) -> List[Post]:
+        """
+        Основной метод парсинга ВКонтакте
 
-            flag = True
+        Args:
+            target (int | str): ID или короткое имя группы.
+            until_postId (int, optional): ID последнего поста, до которого парсить посты. Defaults to None.
+            until_date (int, optional): Дата, до которой парсить посты (timestamp). Defaults to None.
+
+        Returns:
+            List[Post]: Список объектов Post, представляющих посты.
+        """
+        try:
+            offset: int = 0
+            dataset: List[Post] = []
+            flag: bool = True
 
             async with aiohttp.ClientSession() as session:
                 while flag:
-                    posts = await self.vk_request(
+                    posts: Dict = await self.vk_request(
                         session,
                         "wall.get",
                         owner_id="-" + str(target),
@@ -49,7 +56,7 @@ class VKGroupParser(ParserInterface):
 
                     for post in posts["items"]:
                         post_id: int = post["id"]
-                        if last_postId is not None and post_id < last_postId:
+                        if until_postId is not None and post_id < until_postId:
                             flag = False
                             continue
 
@@ -71,13 +78,9 @@ class VKGroupParser(ParserInterface):
 
                                 try:
                                     if attachment_type == "photo":
-                                        photo_url: str = attachment["photo"]["sizes"][
-                                            -1
-                                        ]["url"]
+                                        photo_url: str = attachment["photo"]["sizes"][-1]["url"]
                                         photo_id: int = attachment["photo"]["id"]
-                                        filename: str = (
-                                            f"{self.media}photo_{photo_id}.jpg"
-                                        )
+                                        filename: str = f"{self.media}photo_{photo_id}.jpg"
 
                                         async with session.get(photo_url) as response:
                                             if response.status == 200:
@@ -95,9 +98,7 @@ class VKGroupParser(ParserInterface):
                                         media_files.append("audio")
 
                                 except Exception as e:
-                                    print(
-                                        f"Ошибка при обработке вложения: {attachment_type}"
-                                    )
+                                    print(f"Ошибка при обработке вложения: {attachment_type}")
                                     print(f"Ошибка: {e}")
 
                         dataset.append(
@@ -107,6 +108,9 @@ class VKGroupParser(ParserInterface):
                                 date=date,
                                 is_repost=is_repost,
                                 media_files=media_files,
+                                media_group_id=None,
+                                caption=None,
+                                reply_to_message_id=None
                             )
                         )
 
@@ -121,11 +125,22 @@ class VKGroupParser(ParserInterface):
     async def vk_request(
         self, session: aiohttp.ClientSession, method: str, **kwargs
     ) -> Dict:
-        url = f"https://api.vk.com/method/{method}"
-        params = {"access_token": os.getenv("VK_ACCESS_TOKEN"), "v": "5.131", **kwargs}
+        """
+        VK API Async middleware
+
+        Args:
+            session (aiohttp.ClientSession): Сессия aiohttp.
+            method (str): Название метода VK API.
+            **kwargs: Дополнительные параметры для запроса.
+
+        Returns:
+            Dict: Ответ от VK API в виде словаря.
+        """
+        url: str = f"https://api.vk.com/method/{method}"
+        params: Dict = {"access_token": os.getenv("VK_ACCESS_TOKEN"), "v": "5.131", **kwargs}
 
         async with session.post(url, params=params) as response:
-            response_data = await response.json()
+            response_data: Dict = await response.json()
 
             if "error" in response_data:
                 raise vk_api.exceptions.ApiError(response_data["error"])
@@ -133,20 +148,49 @@ class VKGroupParser(ParserInterface):
             return response_data["response"]
 
     async def parse_until_date(
-        self, until_date: datetime.datetime, target: int | str
+        self, until_date: datetime.datetime, target: Union[int, str]
     ) -> None:
-        dt = VKGroupParser.datetime_to_timestamp(dt_str=until_date)
+        """
+        Парсит посты из группы ВКонтакте до указанной даты.
+
+        Args:
+            until_date (datetime.datetime): Дата, до которой парсить посты.
+            target (int | str): ID или короткое имя группы.
+        """
+        dt: int = VKGroupParser.datetime_to_timestamp(dt_str=until_date)
         await self.parse_posts(target=target, until_date=dt)
 
-    async def parse_until_id(self, until_id: int, target: int | str) -> None:
-        await self.parse_posts(target=target, last_postId=until_id)
+    async def parse_until_id(self, until_id: int, target: Union[int, str]) -> None:
+        """
+        Парсит посты из группы ВКонтакте до указанного ID поста.
 
-    async def parse_all(self, target) -> None:
+        Args:
+            until_id (int): ID поста, до которого парсить посты.
+            target (int | str): ID или короткое имя группы.
+        """
+        await self.parse_posts(target=target, until_postId=until_id)
+
+    async def parse_all(self, target: Union[int, str]) -> None:
+        """
+        Парсит все посты из группы ВКонтакте до самого начала
+
+        Args:
+            target (int | str): ID или короткое имя группы.
+        """
         await self.parse_posts(target=target)
 
     @staticmethod
-    def datetime_to_timestamp(dt_str):
-        dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-        epoch = datetime.datetime.utcfromtimestamp(0)
-        delta = dt - epoch
+    def datetime_to_timestamp(dt_str: str) -> int:
+        """
+        Преобразует объект datetime.datetime в timestamp.
+
+        Args:
+            dt_str (str): Строка с датой и временем в формате "%Y-%m-%d %H:%M:%S".
+
+        Returns:
+            int: Значение timestamp.
+        """
+        dt: datetime.datetime = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+        epoch: datetime.datetime = datetime.datetime.utcfromtimestamp(0)
+        delta: datetime.timedelta = dt - epoch
         return int(delta.total_seconds())
