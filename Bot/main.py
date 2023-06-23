@@ -1,21 +1,23 @@
 import asyncio
-import logging
-import os
 
-import telebot
-# from Config import basedir
+from telebot import asyncio_filters
 from telebot.asyncio_filters import ForwardFilter
+from telebot.asyncio_filters import IsDigitFilter
 from telebot.asyncio_filters import IsReplyFilter
+from telebot.asyncio_filters import StateFilter
 
 from Bot.Config import bot
-from Bot.Config import inline_menu_manager
-from Bot.Filters.forwardFilter import forward_filter
-from Bot.Filters.replyFilter import reply_filter
-from Bot.Handlers.helpHandler import _contact
-from Bot.Handlers.helpHandler import _faq
-from Bot.Handlers.helpHandler import _helpMenu
-from Bot.Handlers.mainMenu import _mainMenu
-from Bot.Handlers.mainMenu import send_welcome
+from Bot.Config import message_context_manager
+from Bot.Config import new_chain_manager
+from Bot.Handlers.helpMenuHandler import _contact
+from Bot.Handlers.helpMenuHandler import _faq
+from Bot.Handlers.helpMenuHandler import _helpMenu
+from Bot.Handlers.mainMenuHandler import _mainMenu
+from Bot.Handlers.newChainHandler import _addNewChain
+from Bot.Handlers.newChainHandler import instagram_source_channel_msg
+from Bot.Handlers.newChainHandler import NewChainStates
+from Bot.Handlers.newChainHandler import telegram_source_channel_msg
+from Bot.Handlers.newChainHandler import vk_source_channel_msg
 from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
 
 
@@ -30,21 +32,32 @@ class Bot:
     def __init__(self):
         bot.add_custom_filter(IsReplyFilter())
         bot.add_custom_filter(ForwardFilter())
+        bot.add_custom_filter(asyncio_filters.StateFilter(bot))
+        bot.add_custom_filter(asyncio_filters.IsDigitFilter())
         bot.setup_middleware(FloodingMiddleware(1))
 
     @staticmethod
     @bot.message_handler(func=lambda message: True)
     async def HandlerTextMiddleware(message):
 
-        match message.text:
-            case "📖 Помощь":
-                await _helpMenu(chat_id=message.chat.id)
+        if message.text == "📖 Помощь":
+            await _helpMenu(message)
+
+        if message.text == "🔗 Добавить новую связку":
+            new_chain_manager.newChain(chat_id=message.chat.id)
+            print(new_chain_manager.chainStore)
+            await _addNewChain(message)
+
+        if message.text == "🔙Назад":
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=message.chat.id
+            )
+            await _mainMenu(chat_id=message.chat.id)
 
     @staticmethod
     @bot.callback_query_handler(func=lambda call: True)
     async def HandlerInlineMiddleware(call):
         print("call data: ", call.data)
-
         if call.data == "contact":
             await _contact(call)
 
@@ -52,11 +65,30 @@ class Bot:
             await _faq(call)
 
         if call.data == "back_to_main_menu":
-            print(inline_menu_manager.__help_menu_msgId_to_delete)
-            await inline_menu_manager.delete_msgId_from_help_menu_dict(
+            await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
             await _mainMenu(chat_id=call.message.chat.id)
+
+        if call.data == "back_to_new_chain_menu":
+            print(new_chain_manager.chainStore)
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            await bot.delete_state(call.message.chat.id)
+            await _addNewChain(message=call.message)
+
+        if call.data == "new_chain#tg":
+            await telegram_source_channel_msg(call.message)
+            await bot.set_state(call.message.chat.id, NewChainStates.telegram)
+
+        if call.data == "new_chain#vk":
+            await vk_source_channel_msg(call.message)
+            await bot.set_state(call.message.chat.id, NewChainStates.vk)
+
+        if call.data == "new_chain#inst":
+            await instagram_source_channel_msg(call.message)
+            await bot.set_state(call.message.chat.id, NewChainStates.instagram)
 
     @staticmethod
     async def polling():
