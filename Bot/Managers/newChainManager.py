@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa
 import re
 from dataclasses import dataclass
 from typing import List

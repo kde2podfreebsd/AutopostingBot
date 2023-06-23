@@ -1,6 +1,6 @@
 import asyncio
 
-from telebot import asyncio_filters
+from telebot import asyncio_filters  # noqa
 from telebot.asyncio_filters import ForwardFilter
 from telebot.asyncio_filters import IsDigitFilter
 from telebot.asyncio_filters import IsReplyFilter
@@ -32,8 +32,8 @@ class Bot:
     def __init__(self):
         bot.add_custom_filter(IsReplyFilter())
         bot.add_custom_filter(ForwardFilter())
-        bot.add_custom_filter(asyncio_filters.StateFilter(bot))
-        bot.add_custom_filter(asyncio_filters.IsDigitFilter())
+        bot.add_custom_filter(StateFilter(bot))
+        bot.add_custom_filter(IsDigitFilter())
         bot.setup_middleware(FloodingMiddleware(1))
 
     @staticmethod

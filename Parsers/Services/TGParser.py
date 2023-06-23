@@ -1,32 +1,27 @@
 import asyncio
 import datetime
-import pyrogram
 from typing import Optional
 
-# import uvloop
+import pyrogram  # noqa
 from dotenv import load_dotenv
 from pyrogram import Client
-from pyrogram import types
-from pyrogram.types import Message
-from pyrogram.types import MessageEntity
-from pyrogram.types import Photo
-from pyrogram.types import Audio
-from pyrogram.types import Voice
-from pyrogram.types import Video
-from pyrogram.types import VideoNote
+from pyrogram import types  # noqa
 from pyrogram.enums import MessageEntityType
-from pyrogram.enums import MessageEntityType
-from pyrogram.raw.types.message_entity_bold import MessageEntityBold
-from pyrogram.raw.types.message_entity_code import MessageEntityCode
-from pyrogram.raw.types.message_entity_italic import MessageEntityItalic
-from pyrogram.raw.types.message_entity_underline import MessageEntityUnderline
-from pyrogram.raw.types.message_entity_spoiler import MessageEntitySpoiler
+from pyrogram.raw.types.message_entity_bold import MessageEntityBold  # noqa
+from pyrogram.raw.types.message_entity_code import MessageEntityCode  # noqa
+from pyrogram.raw.types.message_entity_italic import MessageEntityItalic  # noqa
+from pyrogram.raw.types.message_entity_spoiler import MessageEntitySpoiler  # noqa
+from pyrogram.raw.types.message_entity_underline import MessageEntityUnderline  # noqa
+from pyrogram.types import Audio  # noqa
+from pyrogram.types import Message  # noqa
+from pyrogram.types import MessageEntity  # noqa
+from pyrogram.types import Photo  # noqa
+from pyrogram.types import Video  # noqa
+from pyrogram.types import VideoNote  # noqa
+from pyrogram.types import Voice  # noqa
+
 from Parsers.ParserInterface import ParserInterface
 from Parsers.ParserInterface import Post
-
-###
-
-###
 
 load_dotenv()
 
@@ -38,7 +33,7 @@ class TGChannelParser(ParserInterface):
     @staticmethod
     async def create_session(api_id: int, api_hash: str, session_name: str = "session"):
         async with Client(
-                name=f"sessions/{session_name}", api_id=api_id, api_hash=api_hash
+            name=f"sessions/{session_name}", api_id=api_id, api_hash=api_hash
         ) as app:
             await app.send_message("me", "Init session from server!")
 
@@ -59,10 +54,10 @@ class TGChannelParser(ParserInterface):
             return e
 
     async def parse_chat(
-            self,
-            target: int | str,
-            last_postId: Optional[int] = None,
-            days_for_date_offset: Optional[int] = 2,
+        self,
+        target: int | str,
+        last_postId: Optional[int] = None,
+        days_for_date_offset: Optional[int] = 2,
     ):
         async with self.app as app:
 
@@ -75,7 +70,7 @@ class TGChannelParser(ParserInterface):
 
             while iterate_status:
                 async for message in app.get_chat_history(
-                        chat_id=target, offset_id=offset_id, limit=100
+                    chat_id=target, offset_id=offset_id, limit=100
                 ):
 
                     if last_postId is not None and message.id < last_postId:
@@ -90,7 +85,7 @@ class TGChannelParser(ParserInterface):
                         iterate_status = False
                         break
 
-                    print(f'\n\n ↓ ПОСТ №{message.id} ↓ \n\n', message)
+                    print(f"\n\n ↓ ПОСТ №{message.id} ↓ \n\n", message)
 
                     media_files = []
 
@@ -98,73 +93,156 @@ class TGChannelParser(ParserInterface):
                     if message.entities is not None:
                         for entity in message.entities:
                             if entity.type is MessageEntityType.ITALIC:
-                                message.text = message.text[:entity.offset] \
-                                               + '*' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '*' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "*"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "*"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.UNDERLINE:
-                                message.text = message.text[:entity.offset] \
-                                               + '__' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '__' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "__"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "__"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.BOLD:
-                                message.text = message.text[:entity.offset] \
-                                               + '**' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '**' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "**"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "**"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.SPOILER:
-                                message.text = message.text[:entity.offset] \
-                                               + '||' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '||' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "||"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "||"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.STRIKETHROUGH:
-                                message.text = message.text[:entity.offset] \
-                                               + '~~' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '~~' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "~~"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "~~"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.CODE:
-                                message.text = message.text[:entity.offset] \
-                                               + '`' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '`' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "`"
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "`"
+                                    + message.text[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.TEXT_LINK:
-                                message.text = message.text[:entity.offset] \
-                                               + '[' + message.text[entity.offset:entity.offset + entity.length] \
-                                               + '](' + entity.url + ')' + message.text[entity.offset + entity.length:]
+                                message.text = (
+                                    message.text[: entity.offset]
+                                    + "["
+                                    + message.text[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "]("
+                                    + entity.url
+                                    + ")"
+                                    + message.text[entity.offset + entity.length :]
+                                )
 
                     # Форматирование описания к медиагруппе / фото / видео в Markdown
-                    if message.caption is not None and message.caption_entities is not None:
+                    if (
+                        message.caption is not None
+                        and message.caption_entities is not None
+                    ):
                         for entity in message.caption_entities:
                             if entity.type is MessageEntityType.ITALIC:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '*' + message.caption[
-                                                       entity.offset:entity.offset + entity.length] \
-                                               + '*' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "*"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "*"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.UNDERLINE:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '__' + message.caption[
-                                                        entity.offset:entity.offset + entity.length] \
-                                               + '__' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "__"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "__"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.BOLD:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '**' + message.caption[
-                                                        entity.offset:entity.offset + entity.length] \
-                                               + '**' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "**"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "**"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.SPOILER:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '||' + message.caption[
-                                                        entity.offset:entity.offset + entity.length] \
-                                               + '||' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "||"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "||"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.STRIKETHROUGH:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '~~' + message.caption[
-                                                        entity.offset:entity.offset + entity.length] \
-                                               + '~~' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "~~"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "~~"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.CODE:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '`' + message.caption[
-                                                       entity.offset:entity.offset + entity.length] \
-                                               + '`' + message.caption[entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "`"
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "`"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
                             elif entity.type is MessageEntityType.TEXT_LINK:
-                                message.caption = message.caption[:entity.offset] \
-                                               + '[' + message.caption[
-                                                       entity.offset:entity.offset + entity.length] \
-                                               + '](' + entity.url + ')' + message.caption[
-                                                                           entity.offset + entity.length:]
+                                message.caption = (
+                                    message.caption[: entity.offset]
+                                    + "["
+                                    + message.caption[
+                                        entity.offset : entity.offset + entity.length
+                                    ]
+                                    + "]("
+                                    + entity.url
+                                    + ")"
+                                    + message.caption[entity.offset + entity.length :]
+                                )
 
                     # Добавляем фото
                     if message.photo is not None:
@@ -190,7 +268,7 @@ class TGChannelParser(ParserInterface):
                             pwd = self.download_media(message.video.file_id)
                             media_files.append(pwd)
                         else:
-                            info_video = print('Видео длительностью больше 10-ти минут')
+                            info_video = print("Видео длительностью больше 10-ти минут")
                             media_files.append(info_video)
 
                     # Добавляем видео-кружок
@@ -216,7 +294,7 @@ class TGChannelParser(ParserInterface):
 
                         # Определяем id поста, на которое ответили другим сообщением
                         if message.reply_to_message_id is not None:
-                            return reply_to_message_id
+                            return message.reply_to_message_id
 
                         # Пропускаем стикеры
                         if message.sticker is not None:
@@ -225,7 +303,6 @@ class TGChannelParser(ParserInterface):
                         # Пропускаем опросы
                         if message.poll is not None:
                             continue
-
 
                     posts.append(
                         Post(
@@ -245,7 +322,7 @@ class TGChannelParser(ParserInterface):
                 offset_id += 100
 
             for one_post in posts:
-                print(one_post, sep='\n')
+                print(one_post, sep="\n")
 
             return posts
 
@@ -326,7 +403,6 @@ print(t.count_days_until_date(target_date="2023-06-23 15:00:00"))
 asyncio.run(
     t.parse_chat(
         target="@wowparser",
-
     )
 )
 
