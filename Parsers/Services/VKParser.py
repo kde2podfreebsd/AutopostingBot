@@ -80,7 +80,7 @@ class VKGroupParser(ParserInterface):
                                     if attachment_type == "photo":
                                         photo_url: str = attachment["photo"]["sizes"][-1]["url"]
                                         photo_id: int = attachment["photo"]["id"]
-                                        filename: str = f"{self.media}photo_{photo_id}.jpg"
+                                        filename: str = f"{self.media}VK_photo_{photo_id}.jpg"
 
                                         async with session.get(photo_url) as response:
                                             if response.status == 200:
@@ -115,8 +115,8 @@ class VKGroupParser(ParserInterface):
                         )
 
                     offset += 100
-
-            print(dataset)
+            for data in dataset:
+                print(data, end="\n\n")
             return dataset
 
         except vk_api.exceptions.ApiError as e:

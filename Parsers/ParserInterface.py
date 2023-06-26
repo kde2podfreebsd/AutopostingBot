@@ -41,6 +41,6 @@ class Post:
     date: datetime
     media_files: List[str]
     media_group_id: Optional[int]
-    caption: Optional[str]
     reply_to_message_id: Optional[int]
     is_repost: Optional[bool] = None
+    caption: Optional[str] = None
