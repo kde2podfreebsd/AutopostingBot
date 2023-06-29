@@ -39,8 +39,7 @@ def command_start(message):
 @bot.message_handler(commands=["terms"])
 def command_terms(message):
     bot.send_message(
-        message.chat.id,
-        "Thank you for shopping with our Autoposting bot!\n"
+        message.chat.id, "Thank you for shopping with our Autoposting bot!\n"
     )
 
 

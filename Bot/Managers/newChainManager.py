@@ -1,10 +1,9 @@
 import asyncio  # noqa
-import re
 from dataclasses import dataclass
 from typing import List
 from typing import Set
 
-from Bot.Config.bot import bot
+# import re
 
 
 @dataclass
@@ -24,38 +23,44 @@ class NewChainManager:
     def __init__(self):
         self.chainStore = dict()
 
-    @classmethod
-    def is_valid_url(cls, url):
-        pattern = re.compile(
-            r"^(https?://)?"  # http:// или https://
-            r"((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|"  # доменное имя
-            r"((\d{1,3}\.){3}\d{1,3}))"  # IP-адрес
-            r"(:\d+)?"  # необязательный порт
-            r"(/[-a-z\d%_.~+]*)*"  # путь и параметры
-            r"(\?[;&a-z\d%_.~+=-]*)?"  # параметры запроса
-            r"(\#[-a-z\d_]*)?$",  # фрагмент-идентификатор
-            re.IGNORECASE,
-        )
-        return bool(re.match(pattern, url))
-
     def newChain(self, chat_id: int | str):
-        self.chainStore[chat_id] = []
-        self.chainStore[chat_id].append(
-            ChainBuilder(target_tg_channel_username=None, source_urls=[])
+        self.chainStore[chat_id] = ChainBuilder(
+            target_tg_channel_username=None, source_urls=[]
         )
-
-    async def add_target_channel(self, chat_id: int | str, target_username: str):
-        try:
-            await bot.get_chat_administrators(chat_id=target_username)
-        except Exception:
-            return False
-        builder = ChainBuilder(
-            target_tg_channel_username=target_username, source_urls=[]
-        )
-        self.chainStore[chat_id] = builder
-        return True
 
     def add_source_url(self, chat_id: int | str, source_url: str, source_type: str):
-        builder = self.chainStore[chat_id]
-        if builder is not None:
-            builder.add_source_url(source_url, source_type)
+        if chat_id not in self.chainStore:
+            self.chainStore[chat_id] = ChainBuilder(
+                target_tg_channel_username=None, source_urls=[]
+            )
+
+        chain_builder = self.chainStore[chat_id]
+        if len(chain_builder.source_urls) >= 3:
+            return "MaxSize"
+
+        for source in chain_builder.source_urls:
+            if source["url"] == source_url and source["source_type"] == source_type:
+                return False
+
+        chain_builder.source_urls.append(
+            {"url": source_url, "source_type": source_type}
+        )
+        return True
+
+    def get_source_urls(self, chat_id: int | str) -> str:
+        if chat_id not in self.chainStore:
+            return "Chat ID not found\."  # noqa
+
+        chain_builder = self.chainStore[chat_id]
+        if not chain_builder.source_urls:
+            return "No source URLs found\."  # noqa
+
+        result = "Вы выбрали:\n"
+        for i, source in enumerate(chain_builder.source_urls, start=1):
+            result += f"{i}\\. Тип \\- {source['source_type']} \\| Ссылка \\- {source['url']}\n\n"
+
+        return result
+
+    def add_target_channel(self, chat_id: int | str, channel: str):
+        chain_builder = self.chainStore[chat_id]
+        chain_builder.target_tg_channel_username = channel

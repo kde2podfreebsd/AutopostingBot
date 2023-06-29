@@ -2,8 +2,15 @@ from telebot import formatting
 from telebot import types
 from telebot.types import ReplyKeyboardMarkup
 
+from Bot.Config import new_chain_manager
+
 
 class MarkupBuilder:
+    setParsingType_text: None | object = None
+    # choose_parsing_type_text: None | object = None
+    setTargetChannel_text: None | object = None
+    error_maxSize_toChain_text: None | object = None
+    error_duplicate_source_url_toChain_text: None | object = None
     _welcome_text: object | None = None
     _hide_menu: object | None = None
     _contact_text: object | None = None
@@ -127,6 +134,19 @@ class MarkupBuilder:
         return cls._new_chain_menu_text
 
     @classmethod
+    # @property
+    def current_chain_menu_text(cls, chat_id: int | str):
+        additional_text = new_chain_manager.get_source_urls(chat_id=chat_id)
+        cls._new_chain_menu_text: object = formatting.format_text(
+            additional_text,
+            "\n🔗 Выберите источник контента \\- Пожалуйста, выберите, откуда вы хотите парсить контент: Телеграм канал, ВК\\-паблик или Instagram страница\.",  # noqa
+            # noqa
+            # noqa
+            separator="",
+        )
+        return cls._new_chain_menu_text
+
+    @classmethod
     def new_chain_menu(cls):
         return types.InlineKeyboardMarkup(
             row_width=1,
@@ -234,6 +254,19 @@ class MarkupBuilder:
         )
 
     @classmethod
+    def back_to_chain_menu(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_chain_menu"
+                    )
+                ]
+            ],
+        )
+
+    @classmethod
     @property
     def error_in_add_url_toChain(cls):
         cls._create_new_telegram_chain_text: object = formatting.format_text(
@@ -242,3 +275,77 @@ class MarkupBuilder:
             separator="",
         )
         return cls._create_new_telegram_chain_text
+
+    @classmethod
+    @property
+    def error_duplicate_source_url_toChain(cls):
+        cls.error_duplicate_source_url_toChain_text: object = formatting.format_text(
+            "⚠️ Извините, но ссылка, которую вы предоставили, уже добавлена в текущую связку\. Укажите другую ссылку",  # noqa
+            # noqa
+            separator="",
+        )
+        return cls.error_duplicate_source_url_toChain_text
+
+    @classmethod
+    @property
+    def error_maxSize_toChain(cls):
+        cls.error_maxSize_toChain_text: object = formatting.format_text(
+            "⚠️ Извините, максимальное колличество исходных каналов для автопостинга \\- 3\.",  # noqa
+            # noqa
+            separator="",
+        )
+        return cls.error_maxSize_toChain_text
+
+    @classmethod
+    def setTargetChannel(cls, chat_id: int | str):
+        additional_text = new_chain_manager.get_source_urls(chat_id=chat_id)
+        cls.setTargetChannel_text: object = formatting.format_text(
+            additional_text,
+            "\nПожалуйста, отправьте ссылку на ваш телеграм канал, на который вы хотите выкладывать контент\. Убедитесь, что бот добавлен в этот канал как администратор с правами на публикацию сообщений\.",  # noqa
+            # noqa
+            separator="",
+        )
+        return cls.setTargetChannel_text
+
+    @classmethod
+    @property
+    def setParsingType(cls):
+        cls.setParsingType_text: object = formatting.format_text(
+            "🔄 Выберите тип парсинга\nПожалуйста, выберите, какие посты вы хотите парсить: новые или старые\.",  # noqa
+            # noqa
+            separator="",
+        )
+        return cls.setParsingType_text
+
+    @classmethod
+    def parsingTypeMenu(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="🆕 Новые", callback_data="new_chain#type=new"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔄 Старые", callback_data="new_chain#type=old"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_chain_menu"
+                    )
+                ],
+            ],
+        )
+
+    # @classmethod
+    # def setTime(cls, channel):
+    #     cls.choose_parsing_type_text: object = formatting.format_text(
+    #         f"Вы указали канал для постинга: {channel}"
+    #         "\n\n⏰ Пожалуйста, введите время выхода постов, разделяя время запятыми\. Используйте формат 24\-часов\. Например, если вы хотите, чтобы посты публиковались в 10:00, 14:00 и 18:00, введите '10:00\|14:00\|18:00",
+    #         # noqa
+    #         separator="",
+    #     )
+    #     return cls.choose_parsing_type_text

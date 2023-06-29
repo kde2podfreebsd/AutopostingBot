@@ -1,6 +1,5 @@
 import asyncio
 
-from telebot import asyncio_filters  # noqa
 from telebot.asyncio_filters import ForwardFilter
 from telebot.asyncio_filters import IsDigitFilter
 from telebot.asyncio_filters import IsReplyFilter
@@ -14,8 +13,10 @@ from Bot.Handlers.helpMenuHandler import _faq
 from Bot.Handlers.helpMenuHandler import _helpMenu
 from Bot.Handlers.mainMenuHandler import _mainMenu
 from Bot.Handlers.newChainHandler import _addNewChain
+from Bot.Handlers.newChainHandler import _addSourceToCurrentChain
 from Bot.Handlers.newChainHandler import instagram_source_channel_msg
 from Bot.Handlers.newChainHandler import NewChainStates
+from Bot.Handlers.newChainHandler import setTargetChannel
 from Bot.Handlers.newChainHandler import telegram_source_channel_msg
 from Bot.Handlers.newChainHandler import vk_source_channel_msg
 from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
@@ -78,6 +79,14 @@ class Bot:
             await bot.delete_state(call.message.chat.id)
             await _addNewChain(message=call.message)
 
+        if call.data == "back_to_chain_menu":
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            await bot.delete_state(call.message.chat.id)
+            await _addSourceToCurrentChain(call.message)
+            print(new_chain_manager.chainStore)
+
         if call.data == "new_chain#tg":
             await telegram_source_channel_msg(call.message)
             await bot.set_state(call.message.chat.id, NewChainStates.telegram)
@@ -91,7 +100,13 @@ class Bot:
             await bot.set_state(call.message.chat.id, NewChainStates.instagram)
 
         if call.data == "new_chain#continue":
-            await bot.send_message(call.message.chat.id, "Укажите телеграм канал канал для постинга")
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            await setTargetChannel(call.message)
+            await bot.set_state(call.message.chat.id, NewChainStates.setTarget)
+
+            # await bot.send_message(call.message.chat.id, "Укажите телеграм канал для постинга")
 
     @staticmethod
     async def polling():

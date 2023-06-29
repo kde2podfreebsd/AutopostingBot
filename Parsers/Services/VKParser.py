@@ -1,6 +1,9 @@
 import datetime
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import aiohttp
 import vk_api
@@ -78,9 +81,13 @@ class VKGroupParser(ParserInterface):
 
                                 try:
                                     if attachment_type == "photo":
-                                        photo_url: str = attachment["photo"]["sizes"][-1]["url"]
+                                        photo_url: str = attachment["photo"]["sizes"][
+                                            -1
+                                        ]["url"]
                                         photo_id: int = attachment["photo"]["id"]
-                                        filename: str = f"{self.media}photo_{photo_id}.jpg"
+                                        filename: str = (
+                                            f"{self.media}photo_{photo_id}.jpg"
+                                        )
 
                                         async with session.get(photo_url) as response:
                                             if response.status == 200:
@@ -98,7 +105,9 @@ class VKGroupParser(ParserInterface):
                                         media_files.append("audio")
 
                                 except Exception as e:
-                                    print(f"Ошибка при обработке вложения: {attachment_type}")
+                                    print(
+                                        f"Ошибка при обработке вложения: {attachment_type}"
+                                    )
                                     print(f"Ошибка: {e}")
 
                         dataset.append(
@@ -110,13 +119,14 @@ class VKGroupParser(ParserInterface):
                                 media_files=media_files,
                                 media_group_id=None,
                                 caption=None,
-                                reply_to_message_id=None
+                                reply_to_message_id=None,
                             )
                         )
 
                     offset += 100
 
-            print(dataset)
+            for data in dataset:
+                print(data, end="\n\n")
             return dataset
 
         except vk_api.exceptions.ApiError as e:
@@ -137,7 +147,11 @@ class VKGroupParser(ParserInterface):
             Dict: Ответ от VK API в виде словаря.
         """
         url: str = f"https://api.vk.com/method/{method}"
-        params: Dict = {"access_token": os.getenv("VK_ACCESS_TOKEN"), "v": "5.131", **kwargs}
+        params: Dict = {
+            "access_token": os.getenv("VK_ACCESS_TOKEN"),
+            "v": "5.131",
+            **kwargs,
+        }
 
         async with session.post(url, params=params) as response:
             response_data: Dict = await response.json()

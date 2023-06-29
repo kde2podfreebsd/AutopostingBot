@@ -347,7 +347,7 @@ t = TGChannelParser()
 print(t.count_days_until_date(target_date="2023-06-23 15:00:00"))
 asyncio.run(
     t.parse_chat(
-        target="@wowparser",
+        target="@Full_Time_Trading",
     )
 )
 
