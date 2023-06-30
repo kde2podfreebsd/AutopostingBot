@@ -15,7 +15,7 @@ async def main():
             instance=VKGroupParser(), until_date="2023-06-21 00:00:00", target=target
         ),
         ParserMiddleware.parse_until_id(
-            instance=VKGroupParser(), until_id=333624, target=target
+            instance=VKGroupParser(), until_id=334061, target=target
         ),
         # ParserMiddleware.parse_all(
         #     instance=VKGroupParser(),

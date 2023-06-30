@@ -160,4 +160,4 @@ cython_debug/
 .idea/
 media/
 Parsers/downloads/
-Parsers/sessions/
+Parsers/Services/sessions

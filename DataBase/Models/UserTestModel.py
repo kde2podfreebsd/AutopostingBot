@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean
+from sqlalchemy import Boolean  # noqa
 from sqlalchemy import Column
 from sqlalchemy import Float
 from sqlalchemy import Integer
