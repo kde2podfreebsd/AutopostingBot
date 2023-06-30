@@ -1,6 +1,7 @@
 import datetime
 import re
 
+from sqlalchemy.sql import func
 from telebot.asyncio_handler_backends import State
 from telebot.asyncio_handler_backends import StatesGroup
 
@@ -9,6 +10,8 @@ from Bot.Config import message_context_manager
 from Bot.Config import new_chain_manager
 from Bot.Handlers.mainMenuHandler import _mainMenu
 from Bot.Markups.markupBuilder import MarkupBuilder
+from DataBase.DataAccessLayer.ChainDAL import ChainDAL
+from DataBase.session import async_session
 
 
 class NewChainStates(StatesGroup):
@@ -531,6 +534,21 @@ async def confirmNewChainText(message):
 
 
 async def confirmedChain(message):
+    async with async_session() as session:
+        async with session.begin():
+            new_chain = new_chain_manager.chainStore[message.chat.id]
+            chain_dal = ChainDAL(session)
+            result = await chain_dal.createChain(
+                chat_id=message.chat.id,
+                target_channel=new_chain.target_tg_channel_username,
+                source_urls=new_chain.source_urls,
+                parsing_type=new_chain.parsing_type,
+                parsing_time=new_chain.parsing_time,
+                additional_text=new_chain.additional_text,
+                active_due_date=func.now(),
+            )
+
+            print(result)
 
     await bot.send_message(
         message.chat.id,

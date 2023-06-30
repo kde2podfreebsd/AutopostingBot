@@ -26,6 +26,7 @@ from Bot.Handlers.newChainHandler import telegram_source_channel_msg
 from Bot.Handlers.newChainHandler import vk_source_channel_msg
 from Bot.Markups import MarkupBuilder
 from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
+from DataBase.session import async_session
 
 
 class Bot:
