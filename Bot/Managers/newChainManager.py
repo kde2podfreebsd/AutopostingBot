@@ -1,4 +1,4 @@
-import asyncio  # noqa
+import asyncio
 import datetime
 from dataclasses import dataclass
 from typing import List
@@ -32,7 +32,7 @@ class NewChainManager:
             target_tg_channel_username=None,
             source_urls=[],
             parsing_type=None,
-            parsing_time=None,
+            parsing_time=[],
             additional_text=None,
         )
 
@@ -65,7 +65,7 @@ class NewChainManager:
 
         result = "Вы выбрали:\n"
         for i, source in enumerate(chain_builder.source_urls, start=1):
-            result += f"{i}\\. Тип \\- {source['source_type']} \\| Ссылка \\- {source['url']}\n\n"
+            result += f"{i}\\. Тип \\- {source['source_type']} \\| Ссылка \\- {source['url']}\n"
 
         return result
 
@@ -85,7 +85,9 @@ class NewChainManager:
 
     def add_parsing_time(self, chat_id: int | str, time_list: List[str]):
         chain_builder = self.chainStore[chat_id]
-        chain_builder.parsing_time = time_list
+        unique_times = set(chain_builder.parsing_time)  # Исключаем дубликаты
+        unique_times.update(time_list)  # Объединяем с новыми значениями
+        chain_builder.parsing_time = list(unique_times)  # Преобразуем обратно в список
 
     def add_additional_text(self, chat_id: int | str, text: str):
         chain_builder = self.chainStore[chat_id]

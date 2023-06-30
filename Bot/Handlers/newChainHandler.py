@@ -230,7 +230,7 @@ async def setTargetChannel(message):
     msg = await bot.send_message(
         message.chat.id,
         MarkupBuilder.setTargetChannel(chat_id=message.chat.id),
-        reply_markup=MarkupBuilder.back_to_new_chain_menu(),
+        reply_markup=MarkupBuilder.back_to_chain_menu(),
         parse_mode="MarkdownV2",
     )
 
@@ -261,17 +261,15 @@ async def setTarget(message):
             status = "Not found chat"
 
         if status == "administrator":
-            add_traget_channel_status = new_chain_manager.add_target_channel(
+            add_target_channel_status = new_chain_manager.add_target_channel(
                 chat_id=message.chat.id, channel=message.text
             )
 
-            print(add_traget_channel_status)
-
-            if add_traget_channel_status:
+            if add_target_channel_status:
 
                 msg = await bot.send_message(
                     message.chat.id,
-                    MarkupBuilder.setParsingType,
+                    MarkupBuilder.setParsingType(target_channel=message.text),
                     reply_markup=MarkupBuilder.parsingTypeMenu(),
                     parse_mode="MarkdownV2",
                 )
@@ -330,7 +328,7 @@ async def setParsingType(message):
 
     msg = await bot.send_message(
         chat_id=message.chat.id,
-        text=MarkupBuilder.setParsingType,
+        text=MarkupBuilder.setParsingType(target_channel=None),
         reply_markup=MarkupBuilder.parsingTypeMenu,
         parse_mode="MarkdownV2",
     )
@@ -362,9 +360,15 @@ def parse_date_string(date_string: str) -> datetime.datetime | bool:
     if not match:
         return False
 
-    day, month, year = match.groups()
+    day, month, year = map(int, match.groups())
+
+    # Получение текущей даты
+    current_date = datetime.datetime.now().date()
+
     try:
-        parsed_date = datetime.datetime(int(year), int(month), int(day))
+        parsed_date = datetime.datetime(year, month, day).date()
+        if parsed_date > current_date:
+            return False
         return parsed_date
     except ValueError:
         return False
@@ -456,10 +460,12 @@ async def setParsingTime(message):
     else:
 
         new_chain_manager.add_parsing_time(chat_id=message.chat.id, time_list=status)
-
+        print(new_chain_manager.chainStore[message.chat.id].parsing_time)
         msg = await bot.send_message(
             chat_id=message.chat.id,
-            text=MarkupBuilder.setAdditionalText(time_list=status),
+            text=MarkupBuilder.setAdditionalText(
+                time_list=new_chain_manager.chainStore[message.chat.id].parsing_time
+            ),
             reply_markup=MarkupBuilder.back_to_timeSetter(),
         )
 
@@ -479,23 +485,49 @@ async def setAdditionalText(message):
         timeout=0,
     )
 
-    new_chain_manager.add_additional_text(chat_id=message.chat.id, text=message.text)
-    print(message.text)
-    await confirmNewChainText(message)
+    if len(message.text) > 512:
+        msg = await bot.send_message(
+            message.chat.id,
+            MarkupBuilder.error_in_setAdditionalText,
+            reply_markup=MarkupBuilder.hide_menu,
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
+    else:
+        new_chain_manager.add_additional_text(
+            chat_id=message.chat.id, text=message.text
+        )
+        await confirmNewChainText(message)
 
 
 async def confirmNewChainText(message):
 
-    msg = await bot.send_message(
-        message.chat.id,
-        MarkupBuilder.confirmNewChainText(chat_id=message.chat.id),
-        reply_markup=MarkupBuilder.confirmNewChain(),
-        parse_mode="MarkdownV2",
-    )
+    try:
 
-    await message_context_manager.add_msgId_to_help_menu_dict(
-        chat_id=message.chat.id, msgId=msg.message_id
-    )
+        msg = await bot.send_message(
+            message.chat.id,
+            MarkupBuilder.confirmNewChainText(chat_id=message.chat.id),
+            reply_markup=MarkupBuilder.confirmNewChain(),
+            parse_mode="MarkdownV2",
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
+
+    except Exception as e:
+        msg = await bot.send_message(
+            message.chat.id,
+            "Ошибка при задании url, попробуйте еще раз в формате [текст](ссылка)",
+            reply_markup=MarkupBuilder.back_to_timeSetterSolo(),
+            parse_mode="MarkdownV2",
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
 
 
 async def confirmedChain(message):
