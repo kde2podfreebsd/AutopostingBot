@@ -60,7 +60,7 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=message.chat.id
             )
-            await _mainMenu(chat_id=message.chat.id)
+            await _mainMenu(message=message)
 
     @staticmethod
     @bot.callback_query_handler(func=lambda call: True)
@@ -76,7 +76,7 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-            await _mainMenu(chat_id=call.message.chat.id)
+            await _mainMenu(message=call.message)
 
         if call.data == "back_to_new_chain_menu":
             print(new_chain_manager.chainStore)
@@ -158,7 +158,7 @@ class Bot:
             )
             msg = await bot.send_message(
                 call.message.chat.id,
-                MarkupBuilder.setParsingType,
+                MarkupBuilder.setParsingType(),
                 reply_markup=MarkupBuilder.parsingTypeMenu(),
                 parse_mode="MarkdownV2",
             )
