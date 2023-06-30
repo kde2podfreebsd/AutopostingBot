@@ -1,8 +1,8 @@
 import asyncio  # noqa
+import datetime
 from dataclasses import dataclass
 from typing import List
 from typing import Set
-import datetime
 
 # import re
 
@@ -11,7 +11,7 @@ import datetime
 class ChainBuilder:
     target_tg_channel_username: int | str
     source_urls: List[Set]
-    parsing_type: str             # new | datetime | from_start
+    parsing_type: str | datetime.datetime  # new | datetime | from_start
     parsing_time: List[str]
     additional_text: str | None
 
@@ -29,7 +29,11 @@ class NewChainManager:
 
     def newChain(self, chat_id: int | str):
         self.chainStore[chat_id] = ChainBuilder(
-            target_tg_channel_username=None, source_urls=[], parsing_type = None, parsing_time= None, additional_text=None
+            target_tg_channel_username=None,
+            source_urls=[],
+            parsing_type=None,
+            parsing_time=None,
+            additional_text=None,
         )
 
     def add_source_url(self, chat_id: int | str, source_url: str, source_type: str):
@@ -67,12 +71,22 @@ class NewChainManager:
 
     def add_target_channel(self, chat_id: int | str, channel: str):
         chain_builder = self.chainStore[chat_id]
+        for source in chain_builder.source_urls:
+            if source["url"] == channel and source["source_type"] == "telegram":
+                return False
         chain_builder.target_tg_channel_username = channel
+        return True
 
-    def add_parsing_type(self, chat_id: int| str, parsing_type: str | datetime.datetime):
+    def add_parsing_type(
+        self, chat_id: int | str, parsing_type: str | datetime.datetime
+    ):
         chain_builder = self.chainStore[chat_id]
         chain_builder.parsing_type = parsing_type
 
     def add_parsing_time(self, chat_id: int | str, time_list: List[str]):
         chain_builder = self.chainStore[chat_id]
         chain_builder.parsing_time = time_list
+
+    def add_additional_text(self, chat_id: int | str, text: str):
+        chain_builder = self.chainStore[chat_id]
+        chain_builder.additional_text = text

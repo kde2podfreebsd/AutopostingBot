@@ -12,10 +12,15 @@ from Bot.Handlers.helpMenuHandler import _contact
 from Bot.Handlers.helpMenuHandler import _faq
 from Bot.Handlers.helpMenuHandler import _helpMenu
 from Bot.Handlers.mainMenuHandler import _mainMenu
-from Bot.Handlers.newChainHandler import _addNewChain, setPostSchedule, confirmNewChainText, setParsingOldType
+from Bot.Handlers.newChainHandler import _addNewChain
 from Bot.Handlers.newChainHandler import _addSourceToCurrentChain
+from Bot.Handlers.newChainHandler import confirmedChain
+from Bot.Handlers.newChainHandler import confirmNewChainText
+from Bot.Handlers.newChainHandler import error_no_added_sources_url
 from Bot.Handlers.newChainHandler import instagram_source_channel_msg
 from Bot.Handlers.newChainHandler import NewChainStates
+from Bot.Handlers.newChainHandler import setParsingOldType
+from Bot.Handlers.newChainHandler import setPostSchedule
 from Bot.Handlers.newChainHandler import setTargetChannel
 from Bot.Handlers.newChainHandler import telegram_source_channel_msg
 from Bot.Handlers.newChainHandler import vk_source_channel_msg
@@ -46,7 +51,7 @@ class Bot:
             await _helpMenu(message)
 
         if message.text == "🔗 Добавить новую связку":
-            print("kek")
+            await bot.delete_state(message.chat.id)
             new_chain_manager.newChain(chat_id=message.chat.id)
             print(new_chain_manager.chainStore)
             await _addNewChain(message)
@@ -89,6 +94,14 @@ class Bot:
             await _addSourceToCurrentChain(call.message)
             print(new_chain_manager.chainStore)
 
+        if call.data == "back_to_setTarget":
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            print("back_to_setTarget")
+            await setTargetChannel(call.message)
+            await bot.set_state(call.message.chat.id, NewChainStates.setTarget)
+
         if call.data == "new_chain#tg":
             await telegram_source_channel_msg(call.message)
             await bot.set_state(call.message.chat.id, NewChainStates.telegram)
@@ -105,14 +118,19 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-            await setTargetChannel(call.message)
-            await bot.set_state(call.message.chat.id, NewChainStates.setTarget)
+            if len(new_chain_manager.chainStore[call.message.chat.id].source_urls) == 0:
+                await error_no_added_sources_url(call.message)
+            else:
+                await setTargetChannel(call.message)
+                await bot.set_state(call.message.chat.id, NewChainStates.setTarget)
 
         if call.data == "new_chain#type=new":
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-            new_chain_manager.add_parsing_type(chat_id=call.message.chat.id, parsing_type="Новые")
+            new_chain_manager.add_parsing_type(
+                chat_id=call.message.chat.id, parsing_type="Новые"
+            )
             await setPostSchedule(call.message, "🆕 Новые")
             await bot.set_state(call.message.chat.id, NewChainStates.setParsingTime)
 
@@ -128,7 +146,9 @@ class Bot:
                 chat_id=call.message.chat.id
             )
 
-            new_chain_manager.add_parsing_type(chat_id=call.message.chat.id, parsing_type="С начала")
+            new_chain_manager.add_parsing_type(
+                chat_id=call.message.chat.id, parsing_type="С начала"
+            )
             await setPostSchedule(call.message, "С начала")
             await bot.set_state(call.message.chat.id, NewChainStates.setParsingTime)
 
@@ -152,6 +172,12 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
+            await setPostSchedule(
+                call.message,
+                parsing_type=new_chain_manager.chainStore[
+                    call.message.chat.id
+                ].parsing_type,
+            )
             await bot.set_state(call.message.chat.id, NewChainStates.setParsingTime)
 
         if call.data == "skip_to_confirmChain":
@@ -159,6 +185,13 @@ class Bot:
                 chat_id=call.message.chat.id
             )
             await confirmNewChainText(call.message)
+
+        if call.data == "new_chain#confirmChain":
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+
+            await confirmedChain(call.message)
 
     @staticmethod
     async def polling():

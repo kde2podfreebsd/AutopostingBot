@@ -1,10 +1,10 @@
+# import logging # noqa
 import os
 
-from dotenv import load_dotenv
-
 from .bot import bot  # noqa
-import telebot
-import logging
+
+# import telebot # noqa
+# from dotenv import load_dotenv # noqa
 
 basedir = f"{os.path.abspath(os.path.dirname(__file__))}/../"
 

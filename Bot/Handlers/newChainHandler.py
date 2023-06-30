@@ -1,3 +1,4 @@
+import datetime
 import re
 
 from telebot.asyncio_handler_backends import State
@@ -6,8 +7,8 @@ from telebot.asyncio_handler_backends import StatesGroup
 from Bot.Config import bot
 from Bot.Config import message_context_manager
 from Bot.Config import new_chain_manager
+from Bot.Handlers.mainMenuHandler import _mainMenu
 from Bot.Markups.markupBuilder import MarkupBuilder
-import datetime
 
 
 class NewChainStates(StatesGroup):
@@ -17,8 +18,10 @@ class NewChainStates(StatesGroup):
     vk = State()
     sourceTgChannel = State()
     setTarget = State()
+    setDateFromParsing = State()
     setParsingType = State()
     setParsingTime = State()
+    setAdditionalText = State()
 
 
 async def _addNewChain(message):
@@ -208,12 +211,26 @@ async def get_vk_source_channel(message):
     await _addSourceToCurrentChain(message)
 
 
+async def error_no_added_sources_url(message):
+
+    msg = await bot.send_message(
+        message.chat.id,
+        MarkupBuilder.error_no_added_sources_url_text,
+        reply_markup=MarkupBuilder.back_to_chain_menu(),
+        parse_mode="MarkdownV2",
+    )
+
+    await message_context_manager.add_msgId_to_help_menu_dict(
+        chat_id=message.chat.id, msgId=msg.message_id
+    )
+
+
 async def setTargetChannel(message):
 
     msg = await bot.send_message(
         message.chat.id,
         MarkupBuilder.setTargetChannel(chat_id=message.chat.id),
-        reply_markup=MarkupBuilder.back_to_chain_menu(),
+        reply_markup=MarkupBuilder.back_to_new_chain_menu(),
         parse_mode="MarkdownV2",
     )
 
@@ -233,23 +250,61 @@ async def setTarget(message):
     pattern = r"^@[\w-]+$"
 
     if re.match(pattern, message.text):
+        get_me = await bot.get_me()
 
-        new_chain_manager.add_target_channel(
-            chat_id=message.chat.id, channel=message.text
-        )
+        try:
+            bot_user = await bot.get_chat_member(
+                chat_id=message.text, user_id=get_me.id
+            )
+            status = bot_user.status
+        except Exception:
+            status = "Not found chat"
 
-        msg = await bot.send_message(
-            message.chat.id,
-            MarkupBuilder.setParsingType,
-            reply_markup=MarkupBuilder.parsingTypeMenu(),
-            parse_mode="MarkdownV2",
-        )
+        if status == "administrator":
+            add_traget_channel_status = new_chain_manager.add_target_channel(
+                chat_id=message.chat.id, channel=message.text
+            )
 
-        await message_context_manager.add_msgId_to_help_menu_dict(
-            chat_id=message.chat.id, msgId=msg.message_id
-        )
+            print(add_traget_channel_status)
 
-        await bot.set_state(message.chat.id, NewChainStates.setParsingType)
+            if add_traget_channel_status:
+
+                msg = await bot.send_message(
+                    message.chat.id,
+                    MarkupBuilder.setParsingType,
+                    reply_markup=MarkupBuilder.parsingTypeMenu(),
+                    parse_mode="MarkdownV2",
+                )
+
+                await message_context_manager.add_msgId_to_help_menu_dict(
+                    chat_id=message.chat.id, msgId=msg.message_id
+                )
+
+                await bot.set_state(message.chat.id, NewChainStates.setParsingType)
+
+            else:
+                msg = await bot.send_message(
+                    message.chat.id,
+                    MarkupBuilder.error_targetInSource_toChain,
+                    reply_markup=MarkupBuilder.back_to_chain_menu(),
+                    parse_mode="MarkdownV2",
+                )
+
+                await message_context_manager.add_msgId_to_help_menu_dict(
+                    chat_id=message.chat.id, msgId=msg.message_id
+                )
+
+        else:
+            msg = await bot.send_message(
+                message.chat.id,
+                MarkupBuilder.error_botNotAdmin_toChain,
+                reply_markup=MarkupBuilder.back_to_chain_menu(),
+                parse_mode="MarkdownV2",
+            )
+
+            await message_context_manager.add_msgId_to_help_menu_dict(
+                chat_id=message.chat.id, msgId=msg.message_id
+            )
 
     else:
         msg = await bot.send_message(
@@ -293,9 +348,51 @@ async def setParsingOldType(message):
         parse_mode="MarkdownV2",
     )
 
+    await bot.set_state(message.chat.id, NewChainStates.setDateFromParsing)
+
     await message_context_manager.add_msgId_to_help_menu_dict(
         chat_id=message.chat.id, msgId=msg.message_id
     )
+
+
+def parse_date_string(date_string: str) -> datetime.datetime | bool:
+    pattern = r"^(\d{2})\.(\d{2})\.(\d{4})$"
+
+    match = re.match(pattern, date_string)
+    if not match:
+        return False
+
+    day, month, year = match.groups()
+    try:
+        parsed_date = datetime.datetime(int(year), int(month), int(day))
+        return parsed_date
+    except ValueError:
+        return False
+
+
+@bot.message_handler(state=NewChainStates.setDateFromParsing)
+async def setDateFromParsing(message):
+    await message_context_manager.delete_msgId_from_help_menu_dict(
+        chat_id=message.chat.id
+    )
+
+    status = parse_date_string(message.text)
+    if status is not False:
+        new_chain_manager.add_parsing_type(chat_id=message.chat.id, parsing_type=status)
+        from_date = str(status).replace("-", "\\-")
+        await setPostSchedule(message, f" C указанной даты: {from_date}")
+        await bot.set_state(message.chat.id, NewChainStates.setParsingTime)
+    elif status is False:
+        msg = await bot.send_message(
+            message.chat.id,
+            MarkupBuilder.error_dateFromParse_toChain,
+            reply_markup=MarkupBuilder.backFromTimeSetter(),
+            parse_mode="MarkdownV2",
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
 
 
 async def setPostSchedule(message, parsing_type):
@@ -303,7 +400,7 @@ async def setPostSchedule(message, parsing_type):
     msg = await bot.send_message(
         message.chat.id,
         MarkupBuilder.setTime(parsing_type=parsing_type),
-        reply_markup=MarkupBuilder.back_to_chain_menu(),
+        reply_markup=MarkupBuilder.backFromTimeSetter(),
         parse_mode="MarkdownV2",
     )
 
@@ -322,23 +419,23 @@ async def setParsingTime(message):
     )
 
     def check_hours_format(time_string: str):
-        pattern = r'^\d{2}:\d{2}(\|\d{2}:\d{2})*$'
+        pattern = r"^\d{2}:\d{2}(\|\d{2}:\d{2})*$"
 
         if not re.match(pattern, time_string):
             return False
 
         hours = []
-        time_list = time_string.split('|')
+        time_list = time_string.split("|")
 
         for time in time_list:
-            hour, minute = time.split(':')
+            hour, minute = time.split(":")
             hour = int(hour)
             minute = int(minute)
 
             if minute > 59 or hour > 23 or hour < 0 or minute < 0:
                 return False
 
-            hour_string = f'{hour:02d}:{minute:02d}'
+            hour_string = f"{hour:02d}:{minute:02d}"
             hours.append(hour_string)
 
         return hours
@@ -346,23 +443,45 @@ async def setParsingTime(message):
     status = check_hours_format(time_string=message.text)
 
     if status is False:
-        pass
-    else:
-
-        new_chain_manager.add_parsing_time(
-            chat_id=message.chat.id,
-            time_list=status
-        )
-
         msg = await bot.send_message(
-            chat_id=message.chat.id,
-            text=MarkupBuilder.setAdditionalText(time_list=status),
-            reply_markup=MarkupBuilder.back_to_timeSetter()
+            message.chat.id,
+            MarkupBuilder.error_timeParse_toChain,
+            reply_markup=MarkupBuilder.back_to_timeSetterSolo(),
+            parse_mode="MarkdownV2",
         )
 
         await message_context_manager.add_msgId_to_help_menu_dict(
             chat_id=message.chat.id, msgId=msg.message_id
         )
+    else:
+
+        new_chain_manager.add_parsing_time(chat_id=message.chat.id, time_list=status)
+
+        msg = await bot.send_message(
+            chat_id=message.chat.id,
+            text=MarkupBuilder.setAdditionalText(time_list=status),
+            reply_markup=MarkupBuilder.back_to_timeSetter(),
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
+
+        await bot.set_state(message.chat.id, NewChainStates.setAdditionalText)
+
+
+@bot.message_handler(state=NewChainStates.setAdditionalText)
+async def setAdditionalText(message):
+
+    await bot.delete_message(
+        chat_id=message.chat.id,
+        message_id=message_context_manager.help_menu_msgId_to_delete[message.chat.id],
+        timeout=0,
+    )
+
+    new_chain_manager.add_additional_text(chat_id=message.chat.id, text=message.text)
+    print(message.text)
+    await confirmNewChainText(message)
 
 
 async def confirmNewChainText(message):
@@ -377,3 +496,22 @@ async def confirmNewChainText(message):
     await message_context_manager.add_msgId_to_help_menu_dict(
         chat_id=message.chat.id, msgId=msg.message_id
     )
+
+
+async def confirmedChain(message):
+
+    await bot.send_message(
+        message.chat.id,
+        MarkupBuilder.confirmNewChainText(chat_id=message.chat.id),
+        reply_markup=MarkupBuilder.hide_menu,
+        parse_mode="MarkdownV2",
+    )
+
+    await bot.send_message(
+        message.chat.id,
+        MarkupBuilder.confirm_chain1,
+        reply_markup=MarkupBuilder.hide_menu,
+        parse_mode="MarkdownV2",
+    )
+
+    await _mainMenu(message)
