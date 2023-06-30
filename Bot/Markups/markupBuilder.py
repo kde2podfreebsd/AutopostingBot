@@ -1,3 +1,5 @@
+import datetime
+
 from telebot import formatting
 from telebot import types
 from telebot.types import ReplyKeyboardMarkup
@@ -6,6 +8,9 @@ from Bot.Config import new_chain_manager
 
 
 class MarkupBuilder:
+    _setParsingOldTypeText: None | object = None
+    confirmNewChain_output_text: object | None = None
+    setTime_text: None | object = None
     setParsingType_text: None | object = None
     # choose_parsing_type_text: None | object = None
     setTargetChannel_text: None | object = None
@@ -340,12 +345,103 @@ class MarkupBuilder:
             ],
         )
 
-    # @classmethod
-    # def setTime(cls, channel):
-    #     cls.choose_parsing_type_text: object = formatting.format_text(
-    #         f"Вы указали канал для постинга: {channel}"
-    #         "\n\n⏰ Пожалуйста, введите время выхода постов, разделяя время запятыми\. Используйте формат 24\-часов\. Например, если вы хотите, чтобы посты публиковались в 10:00, 14:00 и 18:00, введите '10:00\|14:00\|18:00",
-    #         # noqa
-    #         separator="",
-    #     )
-    #     return cls.choose_parsing_type_text
+    @classmethod
+    def setTime(cls, parsing_type):
+        cls.setTime_text: object = formatting.format_text(
+            f"Вы указали тип парсинга: {parsing_type}"
+            "\n\n⏰ Пожалуйста, введите время выхода постов, разделяя время запятыми\. Используйте формат 24\-часов\. Например, если вы хотите, чтобы посты публиковались в 10:00, 14:00 и 18:00, введите '10:00\|14:00\|18:00",
+            # noqa
+            separator="",
+        )
+        return cls.setTime_text
+
+    from typing import List
+
+    @classmethod
+    def setAdditionalText(cls, time_list: List[str]):
+        cls.setTime_text: object = formatting.format_text(
+            f"Вы указали время для выхода постов: {time_list}"
+            "\n\n➕Вы можете добавить подпись к каждому посту, который публикуется на вашем канале с источников:   Введите текст подписи с гиперссылкой в формате '[Текст](Ссылка)', или пропустите этот пункт, нажав на кнопку '➡️Пропустить'",
+            # noqa
+            separator="",
+        )
+        return cls.setTime_text
+
+    @classmethod
+    def back_to_timeSetter(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="➡️Пропустить", callback_data="skip_to_confirmChain"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_timeSetter"
+                    )
+                ]
+            ],
+        )
+
+    @classmethod
+    def confirmNewChainText(cls, chat_id: int | str):
+        chain_builder = new_chain_manager.chainStore[chat_id]
+        posting_type = ""
+        if chain_builder.parsing_type == 'Новые':
+            posting_type = chain_builder.parsing_type
+        elif isinstance(chain_builder.parsing_type, datetime.datetime):
+            posting_type = f"Постинга с даты: {chain_builder.parsing_type}"
+        elif chain_builder.parsing_type == "С начала":
+            posting_type = f"Постинга с начала"
+        cls.confirmNewChain_output_text = f'''
+Исходные каналы для парсинга: {new_chain_manager.get_source_urls(chat_id=chat_id)}
+Канал для постинга: {chain_builder.target_tg_channel_username}
+Тип постинга: {posting_type}
+Время для постинга: {chain_builder.parsing_time}
+Добавочный текст: {chain_builder.additional_text if chain_builder.additional_text is not None else ""}
+        '''
+        return cls.confirmNewChain_output_text
+
+    @classmethod
+    def confirmNewChain(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="✅Потдвердить связку", callback_data="new_chain#confirmChain"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="❌Сбросить связку", callback_data="back_to_new_chain_menu"
+                    )
+                ]
+            ],
+        )
+
+    @classmethod
+    @property
+    def setParsingOldTypeText(cls):
+        cls._setParsingOldTypeText = "📅 Пожалуйста, введите дату в формате ДД\.ММ\.ГГГГ, с которой вы хотите начать парсить посты из источника\.\n\nЕсли вы хотите начать с самого первого поста на канале, выберите опцию 'С начала'\."
+        return cls._setParsingOldTypeText
+
+    @classmethod
+    def setParsingOldType(cls):
+        return types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="С начала", callback_data="new_chain#from_start"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="🔙Назад", callback_data="back_to_set_parsing_type"
+                    )
+                ]
+            ],
+        )

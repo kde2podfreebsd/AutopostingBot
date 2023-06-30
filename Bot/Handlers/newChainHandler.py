@@ -7,6 +7,7 @@ from Bot.Config import bot
 from Bot.Config import message_context_manager
 from Bot.Config import new_chain_manager
 from Bot.Markups.markupBuilder import MarkupBuilder
+import datetime
 
 
 class NewChainStates(StatesGroup):
@@ -17,6 +18,7 @@ class NewChainStates(StatesGroup):
     sourceTgChannel = State()
     setTarget = State()
     setParsingType = State()
+    setParsingTime = State()
 
 
 async def _addNewChain(message):
@@ -275,6 +277,100 @@ async def setParsingType(message):
         chat_id=message.chat.id,
         text=MarkupBuilder.setParsingType,
         reply_markup=MarkupBuilder.parsingTypeMenu,
+        parse_mode="MarkdownV2",
+    )
+
+    await message_context_manager.add_msgId_to_help_menu_dict(
+        chat_id=message.chat.id, msgId=msg.message_id
+    )
+
+
+async def setParsingOldType(message):
+    msg = await bot.send_message(
+        chat_id=message.chat.id,
+        text=MarkupBuilder.setParsingOldTypeText,
+        reply_markup=MarkupBuilder.setParsingOldType(),
+        parse_mode="MarkdownV2",
+    )
+
+    await message_context_manager.add_msgId_to_help_menu_dict(
+        chat_id=message.chat.id, msgId=msg.message_id
+    )
+
+
+async def setPostSchedule(message, parsing_type):
+
+    msg = await bot.send_message(
+        message.chat.id,
+        MarkupBuilder.setTime(parsing_type=parsing_type),
+        reply_markup=MarkupBuilder.back_to_chain_menu(),
+        parse_mode="MarkdownV2",
+    )
+
+    await message_context_manager.add_msgId_to_help_menu_dict(
+        chat_id=message.chat.id, msgId=msg.message_id
+    )
+
+
+@bot.message_handler(state=NewChainStates.setParsingTime)
+async def setParsingTime(message):
+
+    await bot.delete_message(
+        chat_id=message.chat.id,
+        message_id=message_context_manager.help_menu_msgId_to_delete[message.chat.id],
+        timeout=0,
+    )
+
+    def check_hours_format(time_string: str):
+        pattern = r'^\d{2}:\d{2}(\|\d{2}:\d{2})*$'
+
+        if not re.match(pattern, time_string):
+            return False
+
+        hours = []
+        time_list = time_string.split('|')
+
+        for time in time_list:
+            hour, minute = time.split(':')
+            hour = int(hour)
+            minute = int(minute)
+
+            if minute > 59 or hour > 23 or hour < 0 or minute < 0:
+                return False
+
+            hour_string = f'{hour:02d}:{minute:02d}'
+            hours.append(hour_string)
+
+        return hours
+
+    status = check_hours_format(time_string=message.text)
+
+    if status is False:
+        pass
+    else:
+
+        new_chain_manager.add_parsing_time(
+            chat_id=message.chat.id,
+            time_list=status
+        )
+
+        msg = await bot.send_message(
+            chat_id=message.chat.id,
+            text=MarkupBuilder.setAdditionalText(time_list=status),
+            reply_markup=MarkupBuilder.back_to_timeSetter()
+        )
+
+        await message_context_manager.add_msgId_to_help_menu_dict(
+            chat_id=message.chat.id, msgId=msg.message_id
+        )
+
+
+async def confirmNewChainText(message):
+
+    msg = await bot.send_message(
+        message.chat.id,
+        MarkupBuilder.confirmNewChainText(chat_id=message.chat.id),
+        reply_markup=MarkupBuilder.confirmNewChain(),
         parse_mode="MarkdownV2",
     )
 
