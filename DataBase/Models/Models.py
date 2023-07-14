@@ -38,4 +38,7 @@ class Post(Base):
     post_id = Column(Integer, primary_key=True)
     chain_id = Column(Integer, ForeignKey("chains.chain_id"))
     user_chat_id = Column(Integer, ForeignKey("users.chat_id"))
-    is_sent = Column(Boolean)
+    post_text = Column(String)
+    post_date = Column(DateTime, default=func.now())
+    media_files = Column(ARRAY(String))
+    is_sent = Column(Boolean, default=False)
