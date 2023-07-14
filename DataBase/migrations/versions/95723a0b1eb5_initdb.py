@@ -1,16 +1,16 @@
-"""init
+"""initdb
 
-Revision ID: 7be66246a588
+Revision ID: 95723a0b1eb5
 Revises: 
-Create Date: 2023-06-30 14:31:30.483405
+Create Date: 2023-07-14 20:41:23.207783
 
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7be66246a588'
+revision = '95723a0b1eb5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade() -> None:
     op.create_table('chains',
     sa.Column('chain_id', sa.Integer(), nullable=False),
     sa.Column('target_channel', sa.String(), nullable=True),
-    sa.Column('source_urls', sa.ARRAY(sa.String()), nullable=True),
+    sa.Column('source_urls', sa.ARRAY(postgresql.JSON(astext_type=sa.Text())), nullable=True),
     sa.Column('parsing_type', sa.String(), nullable=True),
     sa.Column('parsing_time', sa.ARRAY(sa.String()), nullable=True),
     sa.Column('additional_text', sa.String(), nullable=True),

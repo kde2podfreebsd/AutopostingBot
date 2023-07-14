@@ -9,6 +9,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv()
 
+# sqlalchemy.url = postgresql://postgres:postgres@172.20.0.2:5432/postgres
+
+# from DataBase.Models import Models
+# target_metadata = Models.Base.metadata
+
 POSTGRES_USER = str(os.getenv("POSTGRES_USER"))
 POSTGRES_PASSWORD = str(os.getenv("POSTGRES_PASSWORD"))
 POSTGRES_HOST = str(os.getenv("POSTGRES_HOST"))

@@ -18,15 +18,14 @@ from DataBase.Models import Base
 class User(Base):
     __tablename__ = "users"
     chat_id = Column(Integer, primary_key=True)
-    chains_id = Column(Integer, ForeignKey("chains.chain_id"))
-    chains = relationship("Chains")
+    posts = relationship("Post")
 
 
 class Chains(Base):
     __tablename__ = "chains"
     chain_id = Column(Integer, primary_key=True)
     target_channel = Column(String)
-    source_urls = Column(ARRAY(JSON))  # Изменение типа на JSONB
+    source_urls = Column(ARRAY(JSON))
     parsing_type = Column(String)
     parsing_time = Column(ARRAY(String))
     additional_text = Column(String)
