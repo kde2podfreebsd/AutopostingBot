@@ -10,6 +10,6 @@ load_dotenv()
 
 bot = AsyncTeleBot(
     str(os.getenv("MAIN_BOT_TOKEN")),
-    exception_handler=ExceptionHandler(),
+    # exception_handler=ExceptionHandler(),
     state_storage=StateMemoryStorage(),
 )

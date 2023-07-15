@@ -17,12 +17,14 @@ from DataBase.Models import Base
 
 class User(Base):
     __tablename__ = "users"
+
     chat_id = Column(Integer, primary_key=True)
     posts = relationship("Post")
 
 
 class Chains(Base):
     __tablename__ = "chains"
+
     chain_id = Column(Integer, primary_key=True)
     target_channel = Column(String)
     source_urls = Column(ARRAY(JSON))
@@ -35,6 +37,7 @@ class Chains(Base):
 
 class Post(Base):
     __tablename__ = "posts"
+
     post_id = Column(Integer, primary_key=True)
     chain_id = Column(Integer, ForeignKey("chains.chain_id"))
     user_chat_id = Column(Integer, ForeignKey("users.chat_id"))

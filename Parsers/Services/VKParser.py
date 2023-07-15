@@ -9,8 +9,8 @@ import aiohttp
 import vk_api
 from dotenv import load_dotenv
 
-from Parsers.ParserInterface import ParserInterface
-from Parsers.ParserInterface import Post
+from Parsers.ParserAdapter import ParserInterface
+from Parsers.ParserAdapter import Post
 
 load_dotenv()
 

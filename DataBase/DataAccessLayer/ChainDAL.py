@@ -120,8 +120,10 @@ async def test():
         #
         # print(res3)
         #
-        # result = await chain_dal.updateActiveDueDate(chain_id=1, new_due_date=datetime(2023, 12, 29))
-        # print(result)
+        result = await chain_dal.updateActiveDueDate(
+            chain_id=13, new_due_date=datetime(2023, 12, 29)
+        )
+        print(result)
 
 
 if __name__ == "__main__":
