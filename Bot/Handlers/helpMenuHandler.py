@@ -31,12 +31,10 @@ async def _helpMenu(message):
 
 
 async def _contact(call: types.CallbackQuery) -> object:
-    await message_context_manager.delete_msgId_from_help_menu_dict(
-        chat_id=call.message.chat.id
-    )
-    msg = await bot.send_message(
-        call.message.chat.id,
-        MarkupBuilder.contact_text,
+    msg = await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=MarkupBuilder.contact_text,
         reply_markup=MarkupBuilder.help_menu(),
         parse_mode="MarkdownV2",
     )
@@ -46,12 +44,10 @@ async def _contact(call: types.CallbackQuery) -> object:
 
 
 async def _faq(call: types.CallbackQuery):
-    await message_context_manager.delete_msgId_from_help_menu_dict(
-        chat_id=call.message.chat.id
-    )
-    msg = await bot.send_message(
-        call.message.chat.id,
-        MarkupBuilder.faq_text,
+    msg = await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=MarkupBuilder.faq_text,
         reply_markup=MarkupBuilder.help_menu(),
         parse_mode="MarkdownV2",
     )

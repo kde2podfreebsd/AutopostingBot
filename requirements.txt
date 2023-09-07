@@ -37,3 +37,5 @@ urllib3==2.0.3
 virtualenv==20.23.1
 vk-api==11.9.9
 yarl==1.9.2
+
+APScheduler~=3.10.1

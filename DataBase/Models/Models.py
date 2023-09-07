@@ -19,6 +19,7 @@ class User(Base):
     __tablename__ = "users"
 
     chat_id = Column(Integer, primary_key=True)
+    chains = relationship("Chains", back_populates="user")  # Много связок
     posts = relationship("Post")
 
 
@@ -26,6 +27,7 @@ class Chains(Base):
     __tablename__ = "chains"
 
     chain_id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey("users.chat_id"))  # Внешний ключ на User.chat_id
     target_channel = Column(String)
     source_urls = Column(ARRAY(JSON))
     parsing_type = Column(String)
@@ -33,6 +35,8 @@ class Chains(Base):
     additional_text = Column(String)
     active_due_date = Column(DateTime, default=func.now(), nullable=True)
     posts = relationship("Post")
+
+    user = relationship("User", back_populates="chains")  # Отношение к юзеру
 
 
 class Post(Base):

@@ -1,21 +1,23 @@
+import asyncio
 import os
 
 import telebot
 from dotenv import load_dotenv
 from telebot.types import LabeledPrice
 from telebot.types import ShippingOption
+from telebot.async_telebot import AsyncTeleBot
+import telebot
 
 load_dotenv()
 
 token = os.getenv("MAIN_BOT_TOKEN")
 provider_token = os.getenv("PROVIDER_YOOKASSA_TEST")
-bot = telebot.TeleBot(token)
+bot = AsyncTeleBot(token)
 
 # More about Payments: https://core.telegram.org/bots/payments
 
 prices = [
-    LabeledPrice(label="Подписка на месяц", amount=300),
-    LabeledPrice("Подписка на 3 месяца", 800 * 100),
+    LabeledPrice(label="Подписка на месяц", amount=500 * 100)
 ]
 
 shipping_options = [
@@ -29,78 +31,90 @@ shipping_options = [
 
 
 @bot.message_handler(commands=["start"])
-def command_start(message):
-    bot.send_message(
+async def command_start(message):
+    await bot.send_message(
         message.chat.id,
         " Use /buy to order one, /terms for Terms and Conditions",
     )
 
 
 @bot.message_handler(commands=["terms"])
-def command_terms(message):
-    bot.send_message(
+async def command_terms(message):
+    await bot.send_message(
         message.chat.id, "Thank you for shopping with our Autoposting bot!\n"
     )
 
 
 @bot.message_handler(commands=["buy"])
-def command_pay(message):
-    bot.send_message(
+async def command_pay(message):
+    await bot.send_message(
         message.chat.id,
-        "Real cards won't work with me, no money will be debited from your account."
-        " Use this test card number to pay for sub: `4242 4242 4242 4242`"
-        "\n\nThis is your demo invoice:",
+        "🔗 Спасибо за выбор нашего сервиса! Для оплаты выбранной подписки, поспользуйтесь встроенным эквайрингом Yookassa. После успешной оплаты ваша подписка будет автоматически активирована.",
         parse_mode="Markdown",
     )
-    bot.send_invoice(
+    await bot.send_invoice(
         message.chat.id,  # chat_id
         "Подписка на месяц",  # title
         "Подписка на месяц на связку",  # description
-        "ПОдписка на месяц",  # invoice_payload
+        "Подписка на месяц",  # invoice_payload
         provider_token,  # provider_token
         "RUB",  # currency
-        prices,  # prices
-        photo_url="http://erkelzaar.tsudao.com/models/perrotta/TIME_MACHINE.jpg",
-        photo_height=None,  # !=0/None or picture won't be shown
-        photo_width=512,
-        photo_size=512,
-        is_flexible=False,  # True If you need to set up Shipping Fee
-        start_parameter="time-machine-example",
+        prices
     )
 
 
 @bot.shipping_query_handler(func=lambda query: True)
-def shipping(shipping_query):
+async def shipping(shipping_query):
     print(shipping_query)
-    bot.answer_shipping_query(
+    await bot.answer_shipping_query(
         shipping_query.id,
         ok=True,
         shipping_options=shipping_options,
-        error_message="Oh, seems like our Dog couriers are having a lunch right now. Try again later!",
+        error_message="Ошибка, попробуйте позже или напишите в тех поддержку",
     )
 
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
-def checkout(pre_checkout_query):
-    bot.answer_pre_checkout_query(
+async def checkout(pre_checkout_query):
+    await bot.answer_pre_checkout_query(
         pre_checkout_query.id,
         ok=True,
-        error_message="Aliens tried to steal your card's CVV, but we successfully protected your credentials,"
-        " try to pay again in a few minutes, we need a small rest.",
+        error_message="Что-то случилось на стороне эквайринга, попробуйте позже или напишите в тех поддержку",
     )
+
+
+@bot.message_handler(content_types=["text"])
+async def HandlerTextMiddleware(message):
+    if message.text == "kek":
+        print("kek")
 
 
 @bot.message_handler(content_types=["successful_payment"])
-def got_payment(message):
-    bot.send_message(
+async def got_payment(message):
+
+    await bot.send_message(
         message.chat.id,
-        "Hoooooray! Thanks for payment! We will proceed your order for `{} {}` as fast as possible! "
-        "Stay in touch.\n\nUse /buy again to get sub".format(
-            message.successful_payment.total_amount / 100,
-            message.successful_payment.currency,
-        ),
-        parse_mode="Markdown",
+        f'''
+✅ Ваша оплата успешно прошла! Спасибо за покупку подписки/подписок на сумму {message.successful_payment.total_amount / 100} {message.successful_payment.currency}. Ваша подписка теперь активна и вы можете продолжить использовать нашего бота для парсинга и постинга контента.
+
+🔗 Теперь вы можете создать новую связку. Для этого перейдите в главное меню и выберите 'Добавить новую связку'. Вы сможете выбрать источник контента, канал для постинга, тип парсинга и время постинга.
+
+Если у вас возникнут вопросы или проблемы, не стесняйтесь обращаться к нам.        
+'''
     )
 
 
-bot.infinity_polling(skip_pending=True)
+async def polling():
+    task1 = asyncio.create_task(bot.infinity_polling())
+    await task1
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(polling())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()

@@ -1,12 +1,16 @@
 # import logging # noqa
 import os
 
+from telebot.callback_data import CallbackData
+
 from .bot import bot  # noqa
 
 # import telebot # noqa
 # from dotenv import load_dotenv # noqa
 
 basedir = f"{os.path.abspath(os.path.dirname(__file__))}/../"
+
+provider_token = os.getenv("PROVIDER_YOOKASSA_TEST")
 
 # load_dotenv()
 # logger = telebot.logger
@@ -25,3 +29,5 @@ from Bot.Managers.newChainManager import NewChainManager
 
 message_context_manager = MessageContextManager()
 new_chain_manager = NewChainManager()
+
+invoice_factory = CallbackData('product_id', prefix='products')
