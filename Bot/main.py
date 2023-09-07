@@ -1,11 +1,13 @@
+import os
 import asyncio
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telebot.asyncio_filters import ForwardFilter
 from telebot.asyncio_filters import IsDigitFilter
 from telebot.asyncio_filters import IsReplyFilter
 from telebot.asyncio_filters import StateFilter
 
-from Bot.Config import bot
+from Bot.Config import bot, provider_token
 from Bot.Config import message_context_manager
 from Bot.Config import new_chain_manager
 from Bot.Handlers.helpMenuHandler import _contact
@@ -26,7 +28,11 @@ from Bot.Handlers.newChainHandler import telegram_source_channel_msg
 from Bot.Handlers.newChainHandler import vk_source_channel_msg
 from Bot.Markups import MarkupBuilder
 from Bot.Middlewares.floodingMiddleware import FloodingMiddleware
-from DataBase.session import async_session
+from Bot.Middlewares.schedulerMiddleware import ScheduledTasks
+from Bot.Handlers.invoiceHandler import _invoiceMenu, ProductsCallbackFilter, _sub_status, _chainPayment, \
+    _chainAllPayment
+from Bot.Handlers.invoiceHandler import chainsInvoice_callback
+from Bot.Handlers.invoiceHandler import got_payment, shipping, checkout
 
 
 class Bot:
@@ -42,12 +48,15 @@ class Bot:
         bot.add_custom_filter(ForwardFilter())
         bot.add_custom_filter(StateFilter(bot))
         bot.add_custom_filter(IsDigitFilter())
+        bot.add_custom_filter(ProductsCallbackFilter())
         bot.setup_middleware(FloodingMiddleware(1))
+        self.provider_token = os.getenv("PROVIDER_YOOKASSA_TEST")
+        self.scheduler = AsyncIOScheduler()
+        self.scheduled_tasks = ScheduledTasks(self.scheduler)
 
     @staticmethod
-    @bot.message_handler(func=lambda message: True)
+    @bot.message_handler(content_types=["text"])
     async def HandlerTextMiddleware(message):
-
         if message.text == "📖 Помощь":
             await _helpMenu(message)
 
@@ -62,6 +71,9 @@ class Bot:
                 chat_id=message.chat.id
             )
             await _mainMenu(message=message)
+
+        if message.text == "💳 Оплатить подписку":
+            await _invoiceMenu(message=message)
 
     @staticmethod
     @bot.callback_query_handler(func=lambda call: True)
@@ -139,14 +151,12 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-
             await setParsingOldType(call.message)
 
         if call.data == "new_chain#from_start":
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-
             new_chain_manager.add_parsing_type(
                 chat_id=call.message.chat.id, parsing_type="С начала"
             )
@@ -163,7 +173,6 @@ class Bot:
                 reply_markup=MarkupBuilder.parsingTypeMenu(),
                 parse_mode="MarkdownV2",
             )
-
             await message_context_manager.add_msgId_to_help_menu_dict(
                 chat_id=call.message.chat.id, msgId=msg.message_id
             )
@@ -191,19 +200,47 @@ class Bot:
             await message_context_manager.delete_msgId_from_help_menu_dict(
                 chat_id=call.message.chat.id
             )
-
             await confirmedChain(call.message)
 
-    @staticmethod
-    async def polling():
-        while True:
-            try:
-                await bot.polling(non_stop=True, interval=0, timeout=20)
+        if call.data == "back_to_invoice_menu":
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            await _invoiceMenu(call.message)
 
-            except Exception:
-                await asyncio.sleep(2)
+        if "subs_status" in call.data:
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            await _sub_status(call.message)
+
+        if "chainPayment" in call.data:
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            callback_data = call.data.split("#")
+            await _chainPayment(message=call.message, callback_data=callback_data)
+
+        if "chainAllPayment" in call.data:
+            await message_context_manager.delete_msgId_from_help_menu_dict(
+                chat_id=call.message.chat.id
+            )
+            callback_data = call.data.split("#")
+            await _chainAllPayment(message=call.message, callback_data=callback_data)
+
+    async def polling(self):
+        task1 = asyncio.create_task(bot.infinity_polling())
+        self.scheduled_tasks.run()
+        await task1
 
 
 if __name__ == "__main__":
     b = Bot()
-    asyncio.run(b.polling())
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(b.polling())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()

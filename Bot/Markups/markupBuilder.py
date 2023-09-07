@@ -1,15 +1,21 @@
+import asyncio
 import datetime
 
 from telebot import formatting
 from telebot import types
 from telebot.types import ReplyKeyboardMarkup
 
-from Bot.Config import new_chain_manager
+from Bot.Config import new_chain_manager, invoice_factory
+from DataBase.DataAccessLayer.ChainDAL import ChainDAL
+from DataBase.session import async_session
 
 
-class MarkupBuilder:
-    error_in_setAdditional_text = None
-    error_timeParse_toChain_text = None
+class MarkupBuilder(object):
+    _got_payment_text: None | object = None
+    _payChainMenuText: None | object = None
+    _invoice_menu_text: None | object = None
+    error_in_setAdditional_text: None | object = None
+    error_timeParse_toChain_text: None | object = None
     _error_no_added_sources_url_text: None | object = None
     error_botNotAdmin_toChain_text: None | object = None
     _setParsingOldTypeText: None | object = None
@@ -48,12 +54,178 @@ class MarkupBuilder:
     def welcome_text(cls):
         cls._welcome_text: object = formatting.format_text(
             formatting.mbold("👋Приветствую вас в нашем боте!"),  # noqa
-            "\nВы можете добавить новую связку для парсинга и постинга контента, управлять текущими связками, оплатить подписку или получить помощь\.",  # noqa
+            "\nВы можете добавить новую связку для парсинга и постинга контента, управлять текущими связками, оплатить подписку или получить помощь\.",
+            # noqa
             # noqa
             # noqa
             separator="",
         )
         return cls._welcome_text
+
+    @classmethod
+    @property
+    def invoice_menu_text(cls):
+        cls._invoice_menu_text: object = formatting.format_text(
+            formatting.mbold("🔢 Выберите подписку для оплаты"),
+            "\nПожалуйста, выберите подписку\(и\), которую\(ые\) вы хотите оплатить\."
+        )
+        return cls._invoice_menu_text
+
+    @classmethod
+    async def invoice_menu(cls, chat_id: int):
+        async def getChainsByChatId():
+            async with async_session() as session:
+                chain_dal = ChainDAL(session)
+
+                output = []
+
+                user_chains = await chain_dal.getChainsByChatId(chat_id)
+                for chain in user_chains:
+                    output_dict = {
+                        "chain_id": chain[0].chain_id,
+                        "chat_id": chain[0].chat_id,
+                        "target_channel": chain[0].target_channel,
+                        "source_urls": chain[0].source_urls,
+                        "parsing_type": chain[0].parsing_type,
+                        "parsing_time": chain[0].parsing_time,
+                        "additional_text": chain[0].additional_text,
+                        "active_due_date": chain[0].active_due_date
+                    }
+
+                    output.append(output_dict)
+
+                return output
+
+        myChains = await asyncio.gather(getChainsByChatId())
+
+        menu = types.InlineKeyboardMarkup(
+            row_width=1,
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="🔢 Состояние подписок", callback_data=f"subs_status#{chat_id}"
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text="✅ Оплатить/Продлить все", callback_data=invoice_factory.new(product_id=f'payall#{chat_id}')
+                    )
+                ]
+            ],
+        )
+
+        for chain in myChains[0]:
+            menu.add(types.InlineKeyboardButton(
+                text=f"🆔 {chain['chain_id']} | Связка",
+                callback_data=invoice_factory.new(product_id=chain["chain_id"])
+            ))
+
+        menu.add(
+            types.InlineKeyboardButton(
+                text="🔙Назад", callback_data="back_to_main_menu"))
+
+        return menu
+
+    @classmethod
+    @property
+    def payChainMenuText(cls) -> object:
+        cls._payChainMenuText: object = f""" 
+💳 Вам нужно выбрать срок подписки\. Чем больше срок у подписки, тем больше скидки Вы получите на неё:
+            
+<b>Срок:</b> 30 дней. <b>Стоимость:</b> 500 Руб.
+<b>Срок:</b> 90 дней. <b>Стоимость:</b> 1200 Руб. {formatting.hstrikethrough("1500 Руб.")}
+<b>Срок:</b> 180 дней. <b>Стоимость:</b> 2100 Руб. {formatting.hstrikethrough("3000 Руб.")}
+
+<b>Выберите нужную Вам подписку:</b>
+"""
+
+        return cls._payChainMenuText
+
+    @classmethod
+    def got_payment_text(cls, total_amount, currency):
+        cls._got_payment_text = f'''
+✅ Ваша оплата успешно прошла! Спасибо за покупку подписки/подписок на сумму {total_amount} {currency}. Ваша подписка теперь активна и вы можете продолжить использовать нашего бота для парсинга и постинга контента.
+
+🔗 Теперь вы можете создать новую связку. Для этого перейдите в главное меню и выберите 'Добавить новую связку'. Вы сможете выбрать источник контента, канал для постинга, тип парсинга и время постинга.
+
+Если у вас возникнут вопросы или проблемы, не стесняйтесь обращаться к нам.
+'''
+        return cls._got_payment_text
+
+    @classmethod
+    def chainPricingMenu(cls, chain_id: int):
+        return types.InlineKeyboardMarkup(
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text='💳 30 дней = 500 Руб.',
+                        callback_data=f'chainPayment#{chain_id}#30'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text='💰 90 дней = 1200 Руб. (400 Руб./мес.)',
+                        callback_data=f'chainPayment#{chain_id}#90'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text='💰 180 дней = 2100 Руб. (350 Руб./мес.)',
+                        callback_data=f'chainPayment#{chain_id}#180'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text='🔙Назад',
+                        callback_data='back_to_invoice_menu'
+                    )
+                ]
+            ]
+        )
+
+    @classmethod
+    def chainPayAllPricingMenu(cls, chat_id: int, chains_count: int):
+        return types.InlineKeyboardMarkup(
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text=f'💳 30 дней = {500 * chains_count} Руб.',
+                        callback_data=f'chainAllPayment#{chat_id}#30'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=f'💰 90 дней = {1200 * chains_count} Руб. (400 Руб./мес.)',
+                        callback_data=f'chainAllPayment#{chat_id}#90'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=f'💰 180 дней = {2100 * chains_count} Руб. (350 Руб./мес.)',
+                        callback_data=f'chainAllPayment#{chat_id}#180'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text='🔙Назад',
+                        callback_data='back_to_invoice_menu'
+                    )
+                ]
+            ]
+        )
+
+    @classmethod
+    def back_to_invoice_menu(cls):
+        return types.InlineKeyboardMarkup(
+            keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text='🔙Назад',
+                        callback_data='back_to_invoice_menu'
+                    )
+                ]
+            ]
+        )
 
     @classmethod
     @property
@@ -65,7 +237,8 @@ class MarkupBuilder:
     @property
     def help_text(cls):
         cls._welcome_text: object = formatting.format_text(
-            "📖 Добро пожаловать в раздел помощи\!\n\nЗдесь вы можете найти ответы на часто задаваемые вопросы и получить руководство по использованию нашего бота\.",  # noqa
+            "📖 Добро пожаловать в раздел помощи\!\n\nЗдесь вы можете найти ответы на часто задаваемые вопросы и получить руководство по использованию нашего бота\.",
+            # noqa
             # noqa
             # noqa
             formatting.mbold("👋\n\nВыберите одну из следующих опций:"),  # noqa
@@ -96,13 +269,15 @@ class MarkupBuilder:
     @property
     def contact_text(cls) -> object:
         cls._contact_text: object = formatting.format_text(
-            "📧 Связаться с нами Если у вас возникли вопросы, проблемы или вам требуется дополнительная помощь, пожалуйста, обратитесь к нам по следующим контактным данным:",  # noqa
+            "📧 Связаться с нами Если у вас возникли вопросы, проблемы или вам требуется дополнительная помощь, пожалуйста, обратитесь к нам по следующим контактным данным:",
+            # noqa
             formatting.mbold("\n 📞 Телефон:"),  # noqa
             " [номер телефона]",  # noqa
             formatting.mbold("\n 📧 Email:"),  # noqa
             " [адрес электронной почты]",  # noqa
             formatting.mbold("\n 💬 Чат поддержки:"),  # noqa
-            " [ссылка на чат поддержки]\n\nМы всегда готовы помочь вам и ответить на ваши вопросы\.\nНе стесняйтесь обращаться к нам\.",  # noqa
+            " [ссылка на чат поддержки]\n\nМы всегда готовы помочь вам и ответить на ваши вопросы\.\nНе стесняйтесь обращаться к нам\.",
+            # noqa
             # noqa
             # noqa
         )
@@ -139,7 +314,8 @@ class MarkupBuilder:
     @property
     def new_chain_menu_text(cls):
         cls._new_chain_menu_text: object = formatting.format_text(
-            "🔗 Выберите источник контента \\- Пожалуйста, выберите, откуда вы хотите парсить контент: Телеграм канал, ВК\\-паблик или Instagram страница\.",  # noqa
+            "🔗 Выберите источник контента \\- Пожалуйста, выберите, откуда вы хотите парсить контент: Телеграм канал, ВК\\-паблик или Instagram страница\.",
+            # noqa
             # noqa
             # noqa
             separator="",
@@ -152,9 +328,7 @@ class MarkupBuilder:
         additional_text = new_chain_manager.get_source_urls(chat_id=chat_id)
         cls._new_chain_menu_text: object = formatting.format_text(
             additional_text,
-            "\n🔗 Выберите источник контента \\- Пожалуйста, выберите, откуда вы хотите парсить контент: Телеграм канал, ВК\\-паблик или Instagram страница\.",  # noqa
-            # noqa
-            # noqa
+            "\n🔗 Выберите источник контента \\- Пожалуйста, выберите, откуда вы хотите парсить контент: Телеграм канал, ВК\\-паблик или Instagram страница\.",
             # noqa
             separator="",
         )
@@ -380,7 +554,8 @@ class MarkupBuilder:
     def setParsingType(cls, target_channel: str = None):
         if target_channel is not None:
             cls.setParsingType_text: object = formatting.format_text(
-                f"Вы указали {target_channel} в качестве целевого канала для постинга\n\nВыберите тип парсинга\nПожалуйста, выберите, какие посты вы хотите парсить: новые или старые\.",  # noqa
+                f"Вы указали {target_channel} в качестве целевого канала для постинга\n\nВыберите тип парсинга\nПожалуйста, выберите, какие посты вы хотите парсить: новые или старые\.",
+                # noqa
                 # noqa
                 separator="",
             )

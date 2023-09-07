@@ -20,8 +20,8 @@ from pyrogram.types import Video  # noqa
 from pyrogram.types import VideoNote  # noqa
 from pyrogram.types import Voice  # noqa
 
-from Parsers.ParserInterface import ParserInterface
-from Parsers.ParserInterface import Post
+from Parsers.ParserAdapter import ParserInterface
+from Parsers.ParserAdapter import Post
 
 load_dotenv()
 

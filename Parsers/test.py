@@ -1,6 +1,6 @@
 import asyncio
 
-from ParserInterface import ParserMiddleware
+from ParserAdapter import ParserMiddleware
 
 from Parsers.Services.VKParser import VKGroupParser
 
